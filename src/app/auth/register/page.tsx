@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent} from "@/components/ui/Card";
 import { 
   Select,
   SelectContent,
@@ -112,32 +112,26 @@ export default function RegisterPage() {
     <div className="min-h-screen flex">
       {/* Left Section - Image */}
       <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center bg-gradient-to-br from-teal-50 to-cyan-50">
-        <div className="max-w-md text-center">
-          <div className="w-96 h-96 bg-white rounded-2xl shadow-2xl flex items-center justify-center mb-8">
-            <div className="text-6xl">👩‍⚕️</div>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            Join Our Healthcare Community
-          </h3>
-          <p className="text-gray-600">
-            Register to access comprehensive healthcare services and connect with medical professionals.
-          </p>
-        </div>
+        <img
+          src="/assets/Register.png"
+          alt="Hero Image"
+          className="max-w-full h-96 rounded-lg shadow-lg"
+        />
       </div>
 
       {/* Right Section - Form */}
       <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-8 bg-white overflow-y-auto">
         <div className="max-w-2xl mx-auto w-full py-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
+          <div className=" mb-8">
+            {/* <div className="flex items-center justify-center mb-4">
               <div className="w-12 h-12 bg-teal-600 rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-xl">C</span>
               </div>
               <span className="text-2xl font-bold text-gray-900">CareConnect</span>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-            <p className="text-gray-600 mt-2">Join our healthcare platform</p>
+            </div> */}
+            <h2 className="text-3xl font-bold text-gray-900">Sign up</h2>
+            <p className="text-gray-600 mt-2">Let’s get you all st up so you can access your personal account.</p>
           </div>
 
           {/* Registration Form */}
@@ -489,7 +483,7 @@ export default function RegisterPage() {
                   <span className="text-sm text-gray-600">
                     Already have an account?{" "}
                     <Link href="/auth/login" className="text-teal-600 hover:text-teal-500 font-medium">
-                      Sign in
+                      Login
                     </Link>
                   </span>
                 </div>

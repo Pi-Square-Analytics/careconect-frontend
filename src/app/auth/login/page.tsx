@@ -59,6 +59,7 @@ export default function LoginPage() {
       } else {
         setError('Invalid email or password');
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError('An error occurred. Please try again.');
     } finally {
@@ -79,26 +80,26 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-md mx-auto w-full">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
+          <div className="mb-8">
+            {/* <div className="flex items-center justify-center mb-4">
               <div className="w-12 h-12 bg-teal-600 rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-xl">C</span>
               </div>
               <span className="text-2xl font-bold text-gray-900">CareConnect</span>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="text-gray-600 mt-2">Sign in to your account</p>
+            </div> */}
+            <h2 className="text-3xl font-bold text-gray-900">Login</h2>
+            <p className="text-gray-600 mt-2">Login to access your CareConnect  account</p>
           </div>
 
           {/* Demo Credentials */}
-          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-6">
+          {/* <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-6">
             <h3 className="text-sm font-medium text-teal-800 mb-2">Demo Credentials:</h3>
             <div className="text-xs text-teal-700 space-y-1">
               <div><strong>Admin:</strong> admin@careconnect.com / password123</div>
               <div><strong>Doctor:</strong> doctor@careconnect.com / password123</div>
               <div><strong>Patient:</strong> patient@careconnect.com / password123</div>
             </div>
-          </div>
+          </div> */}
 
           {/* Login Form */}
           <Card>
@@ -181,10 +182,17 @@ export default function LoginPage() {
                   disabled={isLoading}
                   className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                  {isLoading ? 'Login...' : 'Login'}
                 </button>
+                <div className="text-center">
+                  <span className="text-sm text-gray-600">
+                    Don't have an account?{" "}
+                    <Link href="/auth/register" className="text-teal-600 hover:text-teal-500 font-medium">
+                      Register
+                    </Link>
+                  </span>
+                </div>
 
-                {/* Divider */}
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-300" />
@@ -212,14 +220,7 @@ export default function LoginPage() {
                 </div>
 
                 {/* Sign Up Link */}
-                <div className="text-center">
-                  <span className="text-sm text-gray-600">
-                    Don't have an account?{" "}
-                    <Link href="/auth/signup" className="text-teal-600 hover:text-teal-500 font-medium">
-                      Sign up
-                    </Link>
-                  </span>
-                </div>
+               
               </form>
             </CardContent>
           </Card>
@@ -227,18 +228,12 @@ export default function LoginPage() {
       </div>
 
       {/* Right Section - Image */}
-      <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center bg-gradient-to-br from-teal-50 to-cyan-50">
-        <div className="max-w-md text-center">
-          <div className="w-96 h-96 bg-white rounded-2xl shadow-2xl flex items-center justify-center mb-8">
-            <div className="text-6xl">🏥</div>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
-            Your Health, Our Priority
-          </h3>
-          <p className="text-gray-600">
-            Connect with healthcare professionals and manage your health journey with ease.
-          </p>
-        </div>
+      <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center">
+       <img
+          src="/assets/login.png"
+          alt="Hero Image"
+          className="max-w-full h-96 rounded-lg shadow-lg"
+        />
       </div>
     </div>
   );
