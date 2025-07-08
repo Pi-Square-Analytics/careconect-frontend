@@ -3,17 +3,42 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, Eye, EyeOff, Mail, Lock, User, UserCheck } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    fullname: '',
+    nationalId: '',
+    gender: '',
+    dateOfBirth: '',
     email: '',
+    phone: '',
+    location: '',
+    role: 'patient',
+    emergencyContactNumber: '',
+    emergencyContactRelation: '',
+    emergencyContactEmail: '',
+    typeOfDisability: '',
+    bloodGroup: '',
+    knownAllergies: '',
+    chronicalCondition: '',
+    vaccinationStatus: '',
     password: '',
     confirmPassword: '',
-    role: 'patient',
+    agreeTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
