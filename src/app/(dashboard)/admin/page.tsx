@@ -20,7 +20,7 @@ export default function AdminDashboard() {
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">Welcome back, Admin!</h1>
-        <p className="text-teal-100">Here's your system overview for today</p>
+        <p className="text-teal-100">Here&apos;s your system overview for today</p>
       </div>
 
       {/* 3 Info Cards (single line) */}
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-2xl font-bold">89</p>
-                <p className="text-sm text-gray-600">Today's Appointments</p>
+                <p className="text-sm text-gray-600">Today&apos;s Appointments</p>
               </div>
             </div>
           </CardContent>

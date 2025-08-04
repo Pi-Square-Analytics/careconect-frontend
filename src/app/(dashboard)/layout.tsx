@@ -1,65 +1,69 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { LogOut } from 'lucide-react';
+import Sidebar from '@/components/Sidebar';
 
 interface User {
+  role: 'admin' | 'doctor' | 'patient';
   name: string;
-  role: "patient" | "admin" | "doctor";
-  email?: string;
 }
 
-export default function DashboardLayoutWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is authenticated
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
+    try {
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser.role && parsedUser.name) {
+          setUser(parsedUser);
+        }
+      } else {
         router.push('/auth/login');
       }
-    } else {
+    } catch (error) {
+      console.error('Error reading user data:', error);
       router.push('/auth/login');
     }
-    setIsLoading(false);
   }, [router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-12 h-12 bg-teal-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">C</span>
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
 
-  if (!user) {
-    return null; // Will redirect to login
-  }
+  if (!user) return null;
 
   return (
-    <DashboardLayout
-      userRole={user.role}
-      userName={user.name}
-      userAvatar={undefined} // Can be added later
-    >
-      {children}
-    </DashboardLayout>
+    <div className="min-h-screen flex bg-gray-100">
+      <Sidebar role={user.role} />
+      <div className="flex-1 flex flex-col">
+        <header className="bg-white shadow-sm p-4 flex justify-between items-center">
+          <h1 className="text-xl font-semibold">CareConnect Dashboard</h1>
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-600">{user.name}</span>
+            <button
+              onClick={handleLogout}
+              className="flex items-center text-red-600 hover:text-red-800"
+              aria-label="Logout"
+            >
+              <LogOut className="h-5 w-5 mr-1" />
+              Logout
+            </button>
+          </div>
+        </header>
+        <main className="flex-1 p-6">{children}</main>
+      </div>
+    </div>
   );
 }
