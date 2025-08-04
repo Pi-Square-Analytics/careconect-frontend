@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState } from "react";
@@ -40,10 +41,10 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h2>
               <p className="text-gray-600 mb-6">
-                We've sent a password reset link to <strong>{email}</strong>
+                We&apos;ve sent a password reset link to <strong>{email}</strong>
               </p>
               <p className="text-sm text-gray-500 mb-6">
-                Didn't receive the email? Check your spam folder or try again.
+                Didn&apos;t receive the email? Check your spam folder or try again.
               </p>
               <div className="space-y-3">
                 <button
@@ -78,7 +79,7 @@ export default function ForgotPasswordPage() {
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Forgot Password?</h2>
           <p className="text-gray-600 mt-2">
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we&apos;ll send you a link to reset your password.
           </p>
         </div>
 

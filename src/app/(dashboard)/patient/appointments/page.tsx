@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Clock, User, Phone, MapPin, MoreHorizontal, Filter } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Calendar, Clock, User, MapPin, Filter } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/Card";
 import { 
   Select,
   SelectContent,

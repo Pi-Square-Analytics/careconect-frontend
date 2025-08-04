@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Clock, User, MapPin, Phone, Mail } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +64,7 @@ export default function BookAppointmentPage() {
         reason: "",
         notes: ""
       });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       alert("Failed to book appointment. Please try again.");
     } finally {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Heart, Bell, Search, LogOut, Menu, X } from 'lucide-react';
 
 interface User {

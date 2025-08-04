@@ -19,7 +19,7 @@ export default function PatientDashboard() {
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">Welcome back, John!</h1>
-        <p className="text-teal-100">Here's your health overview for today</p>
+        <p className="text-teal-100">Here&apos;s your health overview for today</p>
       </div>
 
       {/* Dashboard Cards - 4 squares as specified */}

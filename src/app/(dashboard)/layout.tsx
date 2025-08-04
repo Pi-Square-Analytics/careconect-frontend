@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { LogOut } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 

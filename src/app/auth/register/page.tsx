@@ -94,6 +94,7 @@ export default function RegisterPage() {
         default:
           router.push('/dashboard');
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError('An error occurred. Please try again.');
     } finally {

@@ -204,7 +204,7 @@ export default function ConsultationRecordsPage() {
                 <p className="text-2xl font-bold">
                   {consultationRecords.filter(r => r.date === new Date().toISOString().split('T')[0]).length}
                 </p>
-                <p className="text-sm text-gray-600">Today's Records</p>
+                <p className="text-sm text-gray-600">Today&apos;s Records</p>
               </div>
             </div>
           </CardContent>

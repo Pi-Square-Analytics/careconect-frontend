@@ -81,7 +81,7 @@ export default function MySchedulePage() {
     const breakStartTime = new Date(`2024-01-01 ${breakStart}`);
     const breakEndTime = new Date(`2024-01-01 ${breakEnd}`);
 
-    let current = new Date(startTime);
+    const current = new Date(startTime);
     while (current < endTime) {
       const timeString = current.toTimeString().slice(0, 5);
       const isBreakTime = current >= breakStartTime && current < breakEndTime;
@@ -209,7 +209,7 @@ export default function MySchedulePage() {
                 <div className="text-center py-8">
                   <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No schedule for this day</h3>
-                  <p className="text-gray-600">You don't have any scheduled working hours for this date.</p>
+                  <p className="text-gray-600">You don&apos;t have any scheduled working hours for this date.</p>
                   <button onClick={handleAddSchedule} className="mt-4 btn-primary">
                     Add Schedule
                   </button>
@@ -248,7 +248,7 @@ export default function MySchedulePage() {
 
                   {/* Time Slots */}
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-3">Today's Appointments</h4>
+                    <h4 className="font-medium text-gray-900 mb-3">Today&apos;s Appointments</h4>
                     <div className="space-y-2">
                       {generateTimeSlots(
                         selectedSchedule.startTime,
@@ -304,7 +304,7 @@ export default function MySchedulePage() {
         <div className="space-y-6">
           <Card className="dashboard-card">
             <CardHeader>
-              <CardTitle className="text-lg">Today's Summary</CardTitle>
+              <CardTitle className="text-lg">Today&apos;s Summary</CardTitle>
             </CardHeader>
             <CardContent>
               {selectedSchedule ? (

@@ -184,7 +184,7 @@ export default function UpcomingAppointmentsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{todayAppointments.length}</p>
-                <p className="text-sm text-gray-600">Today's Appointments</p>
+                <p className="text-sm text-gray-600">Today&apos;s Appointments</p>
               </div>
             </div>
           </CardContent>
