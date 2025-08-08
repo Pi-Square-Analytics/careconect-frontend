@@ -22,7 +22,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-left">
             <Link
-              href="/auth/register"
+              href="/register"
               className="btn-primary px-8 py-3 text-lg"
             >
               Register

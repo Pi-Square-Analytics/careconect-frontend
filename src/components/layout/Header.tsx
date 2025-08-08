@@ -38,12 +38,12 @@ export default function Header() {
           </nav>
           <div className="hidden md:flex items-center space-x-4">
             <div className="flex space-x-2">
-              <Link href="/auth/login">
+              <Link href="/login">
                 <Button className="bg-[#008080]"  size="sm">
                   Login
                 </Button>
               </Link>
-              <Link href="/auth/signup">
+              <Link href="/register">
                 <Button className="bg-[#008080]" size="sm">
                   Register
                 </Button>
@@ -80,12 +80,12 @@ export default function Header() {
                 Contact
               </Link>
               <div className="pt-4 space-y-2">
-                <Link href="/auth/login" className="block">
+                <Link href="/login" className="block">
                   <Button variant="outline" size="sm" className="w-full">
                     Login
                   </Button>
                 </Link>
-                <Link href="/auth/signup" className="block">
+                <Link href="/signup" className="block">
                   <Button className="btn-primary w-full" size="sm">
                     Register
                   </Button>
