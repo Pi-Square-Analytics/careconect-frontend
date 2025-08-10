@@ -1070,6 +1070,8 @@
 - PATCH: 10+ endpoints
 - DELETE: 5+ endpoints
 
+
+
 **Main Categories**:
 1. **Authentication & User Management** (25+ endpoints)
 2. **Patient Management** (30+ endpoints)

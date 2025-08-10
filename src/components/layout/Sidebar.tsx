@@ -8,25 +8,38 @@ export default function Sidebar() {
   const { user } = useAuthHooks();
   const pathname = usePathname();
 
-  // Define role-based navigation links
   const navLinks = user?.userType === 'patient'
     ? [
         { name: 'Dashboard', href: '/patient' },
-        { name: 'Profile', href: '/profile' },
-        { name: 'Appointments', href: '/appointments' },
-        { name: 'Messages', href: '/messages' },
+        { name: 'Profile', href: '/patient/profile' },
+        { name: 'Appointments', href: '/patient/appointments' },
+        { name: 'Messages', href: '/patient/messages' },
+        { name: 'Medical History', href: '/patient/medical-history' },
+        { name: 'Allergies', href: '/patient/allergies' },
+        { name: 'Medications', href: '/patient/medications' },
+        { name: 'Preferences', href: '/patient/preferences' },
+        { name: 'Invoices', href: '/patient/invoices' },
+        { name: 'Search Doctors', href: '/patient/search/doctors' },
       ]
     : user?.userType === 'admin'
     ? [
-        { name: 'Admin Dashboard', href: '/admin' },
-        { name: 'Users', href: '/users' },
-        { name: 'Reports', href: '/reports' },
+        { name: 'Dashboard', href: '/admin' },
+        { name: 'Users', href: '/admin/users' },
+        { name: 'Doctors', href: '/admin/doctors' },
+        { name: 'Reports', href: '/admin/reports' },
+        { name: 'Appointments', href: '/admin/appointments' },
+        { name: 'Audit Logs', href: '/admin/audit-logs' },
+        { name: 'Settings', href: '/admin/settings' },
       ]
     : user?.userType === 'doctor'
     ? [
-        { name: 'Doctor Dashboard', href: '/doctor' },
-        { name: 'Schedule', href: '/schedule' },
-        { name: 'Patients', href: '/patients' },
+        { name: 'Dashboard', href: '/doctor' },
+        { name: 'Schedule', href: '/doctor/schedule' },
+        { name: 'Patients', href: '/doctor/patients' },
+        { name: 'Appointments', href: '/doctor/appointments' },
+        { name: 'Consultations', href: '/doctor/consultations' },
+        { name: 'Invoices', href: '/doctor/invoices' },
+        { name: 'Search Patients', href: '/doctor/search/patients' },
       ]
     : [];
 
