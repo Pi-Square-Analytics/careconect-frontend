@@ -18,8 +18,9 @@ export interface User {
 }
 
 export interface AuthResponse {
-  error: string;
   success: boolean;
+  message?: string;
+  error?: string;
   data: LoginResponseData | RegisterResponseData;
 }
 
@@ -33,7 +34,6 @@ export interface RegisterResponseData {
   userId: string;
   email: string;
   phoneNumber: string;
-  passwordHash: string;
   userType: 'patient';
   accountStatus: string;
   emailVerified: boolean | null;
@@ -52,6 +52,7 @@ export interface RegisterResponseData {
 export interface AuthError {
   success: false;
   error: string;
+  message?: string;
 }
 
 export interface LoginCredentials {
