@@ -85,7 +85,7 @@ export default function Header() {
                     Login
                   </Button>
                 </Link>
-                <Link href="/signup" className="block">
+                <Link href="/register" className="block">
                   <Button className="btn-primary w-full" size="sm">
                     Register
                   </Button>
