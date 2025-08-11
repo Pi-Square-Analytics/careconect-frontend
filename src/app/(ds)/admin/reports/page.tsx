@@ -1,32 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import { api } from '@/lib/api/api';
+import  api  from '@/lib/api/api';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
+  Card, CardHeader, CardTitle, CardContent,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/Button';
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
+  Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
 } from '@/components/ui/table';
+import { Calendar, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Report {
   id: string;
@@ -102,147 +92,90 @@ export default function ReportsPage() {
         setLoading(false);
       }
     };
-    if (user) {
-      fetchReports();
-    }
+    if (user) fetchReports();
   }, [user, reportType, filters]);
 
   const handleFilterChange = (name: string, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-      page: '1',
-    }));
-    if (name === 'reportType') {
-      setReportType(value);
-    }
+    setFilters(prev => ({ ...prev, [name]: value, page: '1' }));
+    if (name === 'reportType') setReportType(value);
   };
 
-  const handleGenerateCustomReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      await api.post('/reports/admin/reports/custom/generate', {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        reportType,
-      });
-      const response = await api.get<ApiResponse>(
-        `${reportEndpoints[reportType]}?startDate=${filters.startDate}&endDate=${filters.endDate}`
-      );
-      setReports(response.data.data || []);
-      setPagination(response.data.pagination || null);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to generate custom report');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!user) {
-    return <p>Please log in to view the reports page.</p>;
-  }
+  if (!user) return <p className="text-center text-lg mt-10">Please log in to view the reports page.</p>;
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Reports</h1>
-      <p className="text-muted-foreground">
-        View reports, {user.profile.firstName} {user.profile.lastName}.
-      </p>
+    <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+      <header className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+        <p className="text-muted-foreground">
+          View and generate reports, {user.profile.firstName}.
+        </p>
+      </header>
 
-      {error && <p className="text-red-500">{error}</p>}
+      {error && (
+        <div className="p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
+      )}
 
-      <Card>
+      {/* Filters */}
+      <Card className="shadow-lg border-t-4 border-[#C4E1E1]">
         <CardHeader>
-          <CardTitle>Filter Reports</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[#C4E1E1]" />
+            Filter Reports
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label>Report Type</Label>
-              <Select
-                value={reportType}
-                onValueChange={(v) => handleFilterChange('reportType', v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="activityLogs">Activity Logs</SelectItem>
-                  <SelectItem value="appointments">Appointments</SelectItem>
-                  <SelectItem value="invoices">Invoices</SelectItem>
-                  <SelectItem value="financial">Financial</SelectItem>
-                  <SelectItem value="clinical">Clinical</SelectItem>
-                  <SelectItem value="userActivity">User Activity</SelectItem>
-                  <SelectItem value="systemPerformance">System Performance</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Start Date</Label>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label>Report Type</Label>
+            <Select
+              value={reportType}
+              onValueChange={(v) => handleFilterChange('reportType', v)}
+            >
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(reportEndpoints).map(key => (
+                  <SelectItem key={key} value={key}>{key}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Start Date</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
               <Input
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                className="pl-9"
               />
             </div>
-            <div>
-              <Label>End Date</Label>
+          </div>
+          <div>
+            <Label>End Date</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
               <Input
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                className="pl-9"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate Custom Report</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={handleGenerateCustomReport}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            <div>
-              <Label>Report Type</Label>
-              <Select
-                value={reportType}
-                onValueChange={(v) => handleFilterChange('reportType', v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="appointments">Appointments</SelectItem>
-                  <SelectItem value="invoices">Invoices</SelectItem>
-                  <SelectItem value="financial">Financial</SelectItem>
-                  <SelectItem value="clinical">Clinical</SelectItem>
-                  <SelectItem value="userActivity">User Activity</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-2">
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Generating...' : 'Generate Report'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
+      {/* Table */}
       {reports.length > 0 ? (
-        <Card>
+        <Card className="shadow-lg overflow-hidden border-t-4 border-[#C4E1E1]">
           <CardHeader>
             <CardTitle>Reports</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-[#C4E1E1]/20">
                 <TableRow>
                   <TableHead>Type</TableHead>
                   <TableHead>Created</TableHead>
@@ -250,14 +183,17 @@ export default function ReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.map((report) => (
-                  <TableRow key={report.id}>
+                {reports.map((report, idx) => (
+                  <TableRow
+                    key={report.id}
+                    className={idx % 2 ? 'bg-gray-50' : ''}
+                  >
                     <TableCell>{report.type}</TableCell>
                     <TableCell>
                       {new Date(report.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <pre className="whitespace-pre-wrap text-xs">
+                      <pre className="whitespace-pre-wrap text-xs text-gray-600">
                         {JSON.stringify(report, null, 2)}
                       </pre>
                     </TableCell>
@@ -265,43 +201,36 @@ export default function ReportsPage() {
                 ))}
               </TableBody>
             </Table>
-            {pagination && (
-              <div className="flex justify-between items-center mt-4">
-                <p className="text-sm">
-                  Page {pagination.page} of {pagination.pages} | Total: {pagination.total}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={!pagination.hasPrev || loading}
-                    onClick={() =>
-                      setFilters({
-                        ...filters,
-                        page: (pagination.page - 1).toString(),
-                      })
-                    }
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={!pagination.hasNext || loading}
-                    onClick={() =>
-                      setFilters({
-                        ...filters,
-                        page: (pagination.page + 1).toString(),
-                      })
-                    }
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
           </CardContent>
+
+          {pagination && (
+            <div className="flex justify-between items-center px-4 py-3 bg-gray-100">
+              <p className="text-sm text-gray-600">
+                Page {pagination.page} of {pagination.pages} | Total: {pagination.total}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  disabled={!pagination.hasPrev || loading}
+                  onClick={() => setFilters({ ...filters, page: (pagination.page - 1).toString() })}
+                >
+                  <ChevronLeft className="w-4 h-4" /> Prev
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={!pagination.hasNext || loading}
+                  onClick={() => setFilters({ ...filters, page: (pagination.page + 1).toString() })}
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       ) : (
-        <p>No reports found.</p>
+        <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <p className="text-gray-500">No reports found for the selected filters.</p>
+        </div>
       )}
     </div>
   );
