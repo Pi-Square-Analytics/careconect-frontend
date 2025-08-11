@@ -1,633 +1,580 @@
-// app/schedule/page.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
+//@ts-nocheck
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import { api } from '@/lib/api/api';
+import api from '@/lib/api/api';
+
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+import {
+  UserPlus,
+  Users,
+  Search,
+  Filter,
+  RefreshCcw,
+  Download,
+  Check,
+  X,
+  AlertCircle,
+  CalendarDays,
+} from "lucide-react";
 
 interface User {
-  doctorId: string;
+  userId: string;
+  email: string;
+  phoneNumber: string;
+  userType: 'patient' | 'admin' | 'doctor';
+  accountStatus: 'active' | 'inactive' | 'pending';
+  emailVerified: boolean | null;
+  phoneVerified: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+  lastLogin: string | null;
   profile: {
     firstName: string;
     lastName: string;
   };
 }
 
-interface Doctor {
-  userId: string;
-  specialty: string;
-  consultationFee: string;
-  isActive: boolean;
+interface ApiResponse {
+  users: User[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: string;
+    pages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
-interface Availability {
-  availabilityId: string;
-  doctorId: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  slotDuration: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  doctor: Doctor;
+interface NewUser {
+  email: string;
+  phoneNumber: string;
+  userType: 'patient' | 'admin' | 'doctor';
+  firstName: string;
+  lastName: string;
+  password: string;
 }
 
-interface NewAvailability {
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  slotDuration: number;
-  isActive: boolean;
-}
-
-interface UpdateAvailability {
-  dayOfWeek?: number;
-  startTime?: string;
-  endTime?: string;
-  slotDuration?: number;
-  isActive?: boolean;
-}
-
-interface UpdateStatus {
-  status: boolean;
-}
-
-interface BulkUpdate {
-  doctorId: string;
-  dayOfWeek: number;
-  isActive: boolean;
-  reason?: string;
-}
-
-export default function SchedulePage() {
+export default function UsersPage() {
   const { user } = useAuthHooks();
-  const [availability, setAvailability] = useState<Availability[]>([]);
+
+  const [users, setUsers] = useState<User[]>([]);
+  const [pagination, setPagination] = useState<ApiResponse['pagination'] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newAvailability, setNewAvailability] = useState<NewAvailability>({
-    dayOfWeek: 1,
-    startTime: '09:00',
-    endTime: '17:00',
-    slotDuration: 30,
-    isActive: true,
+
+  // form
+  const [newUser, setNewUser] = useState<NewUser>({
+    email: '',
+    phoneNumber: '',
+    userType: 'patient',
+    firstName: '',
+    lastName: '',
+    password: '',
   });
-  const [updateAvailability, setUpdateAvailability] = useState<UpdateAvailability>({});
-  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: true });
-  const [bulkUpdate, setBulkUpdate] = useState<BulkUpdate>({
-    doctorId: user?.doctorId || '',
-    dayOfWeek: 1,
-    isActive: false,
-    reason: '',
-  });
-  const [selectedAvailabilityId, setSelectedAvailabilityId] = useState<string | null>(null);
+
+  // UI state: filters/sort/search
+  const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | User['userType']>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | User['accountStatus']>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'type'>('newest');
+
+  const BRAND = '#C4E1E1';
+
+  const initials = (f?: string, l?: string) =>
+    ((f?.[0] ?? '') + (l?.[0] ?? '') || 'U').toUpperCase();
+
+  const statusColors: Record<User['accountStatus'], string> = {
+    active: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
+    inactive: "bg-gray-100 text-gray-700 ring-1 ring-gray-200",
+    pending: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
+  };
+
+  const fetchUsers = async () => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/admin/users');
+      if (response.data && response.data.users) {
+        setUsers(response.data.users);
+        setPagination(response.data.pagination ?? null);
+      } else {
+        console.error('Unexpected API response structure:', response.data);
+        setError('Unexpected response format from server');
+      }
+    } catch (err: any) {
+      console.error('Fetch users error:', err);
+      let errorMessage = 'Failed to fetch users';
+      if (typeof err === 'string') errorMessage = err;
+      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
+      else if (err?.message) errorMessage = err.message;
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAvailability = async () => {
-      if (!user?.doctorId) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await api.get<Availability[]>(`/schedule/doctors/${user.doctorId}/availability`);
-        console.log('API Response:', response.data);
-        setAvailability(Array.isArray(response.data) ? response.data : []);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to fetch availability');
-        setAvailability([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user?.doctorId) {
-      fetchAvailability();
-    }
-  }, [user?.doctorId]);
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
-  // Update bulkUpdate.doctorId when user changes
-  useEffect(() => {
-    if (user?.doctorId) {
-      setBulkUpdate((prev) => ({ ...prev, doctorId: user.doctorId }));
-    }
-  }, [user?.doctorId]);
-
-  const handleCreateAvailability = async (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.doctorId) {
-      setError('Doctor ID is required');
-      return;
-    }
-
-    // Validate startTime < endTime
-    if (newAvailability.startTime >= newAvailability.endTime) {
-      setError('Start time must be before end time');
-      return;
-    }
-    if (newAvailability.slotDuration <= 0) {
-      setError('Slot duration must be positive');
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
-      const formattedAvailability = {
-        ...newAvailability,
-        doctorId: user.doctorId,
-        startTime: `${newAvailability.startTime}:00`,
-        endTime: `${newAvailability.endTime}:00`,
-      };
-      await api.post(`/schedule/doctors/${user.doctorId}/availability`, formattedAvailability);
-      const response = await api.get<Availability[]>(`/schedule/doctors/${user.doctorId}/availability`);
-      setAvailability(Array.isArray(response.data) ? response.data : []);
-      setNewAvailability({
-        dayOfWeek: 1,
-        startTime: '09:00',
-        endTime: '17:00',
-        slotDuration: 30,
-        isActive: true,
+      await api.post('/admin/users', {
+        ...newUser,
+        profile: {
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+        },
+      });
+      await fetchUsers();
+      setNewUser({
+        email: '',
+        phoneNumber: '',
+        userType: 'patient',
+        firstName: '',
+        lastName: '',
+        password: '',
       });
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to create availability');
+      console.error('Create user error:', err);
+      let errorMessage = 'Failed to create user';
+      if (typeof err === 'string') errorMessage = err;
+      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
+      else if (err?.message) errorMessage = err.message;
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateAvailability = async (availabilityId: string) => {
-    if (!user?.doctorId) {
-      setError('Doctor ID is required');
-      return;
-    }
-
-    // Validate startTime < endTime if both are provided
-    if (updateAvailability.startTime && updateAvailability.endTime && updateAvailability.startTime >= updateAvailability.endTime) {
-      setError('Start time must be before end time');
-      return;
-    }
-    if (updateAvailability.slotDuration && updateAvailability.slotDuration <= 0) {
-      setError('Slot duration must be positive');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const formattedUpdate = { ...updateAvailability };
-      if (formattedUpdate.startTime && !formattedUpdate.startTime.includes(':00')) {
-        formattedUpdate.startTime = `${formattedUpdate.startTime}:00`;
-      }
-      if (formattedUpdate.endTime && !formattedUpdate.endTime.includes(':00')) {
-        formattedUpdate.endTime = `${formattedUpdate.endTime}:00`;
-      }
-      await api.patch(`/schedule/availability/${availabilityId}`, formattedUpdate);
-      const response = await api.get<Availability[]>(`/schedule/doctors/${user.doctorId}/availability`);
-      setAvailability(Array.isArray(response.data) ? response.data : []);
-      setSelectedAvailabilityId(null);
-      setUpdateAvailability({});
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to update availability');
-    } finally {
-      setLoading(false);
-    }
+  const handleInputChange = (name: keyof NewUser, value: string) => {
+    setNewUser({ ...newUser, [name]: value });
   };
 
-  const handleUpdateStatus = async (availabilityId: string) => {
-    if (!user?.doctorId) {
-      setError('Doctor ID is required');
-      return;
-    }
+  // client-side search/filter/sort
+  const filteredUsers = useMemo(() => {
+    let list = [...users];
 
-    setLoading(true);
-    setError(null);
-    try {
-      await api.patch(`/schedule/availability/${availabilityId}/status`, updateStatus);
-      const response = await api.get<Availability[]>(`/schedule/doctors/${user.doctorId}/availability`);
-      setAvailability(Array.isArray(response.data) ? response.data : []);
-      setSelectedAvailabilityId(null);
-      setUpdateStatus({ status: true });
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to update status');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteAvailability = async (availabilityId: string) => {
-    if (!confirm('Are you sure you want to delete this availability slot?')) return;
-    if (!user?.doctorId) {
-      setError('Doctor ID is required');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      await api.delete(`/schedule/availability/${availabilityId}`);
-      const response = await api.get<Availability[]>(`/schedule/doctors/${user.doctorId}/availability`);
-      setAvailability(Array.isArray(response.data) ? response.data : []);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to delete availability');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBulkUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.doctorId) {
-      setError('Doctor ID is required');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      await api.post(`/schedule/bulk-update`, {
-        ...bulkUpdate,
-        doctorId: user.doctorId,
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter((u) => {
+        const full = `${u.profile?.firstName ?? ''} ${u.profile?.lastName ?? ''}`.toLowerCase();
+        return (
+          full.includes(q) ||
+          (u.email ?? '').toLowerCase().includes(q) ||
+          (u.phoneNumber ?? '').toLowerCase().includes(q)
+        );
       });
-      const response = await api.get<Availability[]>(`/schedule/doctors/${user.doctorId}/availability`);
-      setAvailability(Array.isArray(response.data) ? response.data : []);
-      setBulkUpdate({
-        doctorId: user.doctorId,
-        dayOfWeek: 1,
-        isActive: false,
-        reason: '',
-      });
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to perform bulk update');
-    } finally {
-      setLoading(false);
     }
+    if (roleFilter !== 'all') {
+      list = list.filter((u) => u.userType === roleFilter);
+    }
+    if (statusFilter !== 'all') {
+      list = list.filter((u) => u.accountStatus === statusFilter);
+    }
+
+    switch (sortBy) {
+      case 'newest':
+        list.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+        break;
+      case 'oldest':
+        list.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+        break;
+      case 'name':
+        list.sort((a, b) =>
+          `${a.profile.firstName} ${a.profile.lastName}`.localeCompare(
+            `${b.profile.firstName} ${b.profile.lastName}`
+          )
+        );
+        break;
+      case 'type':
+        list.sort((a, b) => a.userType.localeCompare(b.userType));
+        break;
+    }
+    return list;
+  }, [users, query, roleFilter, statusFilter, sortBy]);
+
+  const exportCSV = () => {
+    const rows = [
+      ['First Name', 'Last Name', 'Email', 'Phone', 'Type', 'Status', 'Email Verified', 'Phone Verified', 'Created', 'Last Login'],
+      ...filteredUsers.map(u => [
+        u.profile.firstName,
+        u.profile.lastName,
+        u.email,
+        u.phoneNumber,
+        u.userType,
+        u.accountStatus,
+        u.emailVerified ? 'Yes' : 'No',
+        u.phoneVerified ? 'Yes' : 'No',
+        new Date(u.createdAt).toISOString(),
+        u.lastLogin ? new Date(u.lastLogin).toISOString() : '',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    setState: React.Dispatch<React.SetStateAction<any>>,
-    state: any
-  ) => {
-    const { name, value } = e.target;
-    const parsedValue =
-      name === 'dayOfWeek' || name === 'slotDuration'
-        ? parseInt(value, 10)
-        : name === 'isActive' || name === 'status'
-        ? value === 'true'
-        : value;
-    setState({ ...state, [name]: parsedValue });
-  };
-
-  // Helper function to format time display (remove seconds)
-  const formatTimeDisplay = (time: string) => {
-    return time.substring(0, 5); // Returns HH:MM from HH:MM:SS
-  };
-
-  if (!user?.doctorId) {
-    return <p>Please log in as a doctor to view the schedule page.</p>;
+  if (!user) {
+    return <p className="mt-10 text-center text-gray-500">Please log in to view the users page.</p>;
   }
 
-  const daysOfWeek = [
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' },
-    { value: 7, label: 'Sunday' },
-  ];
-
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Schedule</h1>
-      <p className="mb-4">
-        Manage your schedule, {user.profile.firstName} {user.profile.lastName}.
-      </p>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
+    <div
+      className="p-6"
+      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+    >
+      {/* brand ribbon */}
+      <div
+        className="mx-auto mb-4 h-1 max-w-6xl rounded-full"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)',
+        }}
+        aria-hidden
+      />
 
-      {/* Create Availability Form */}
-      <div className="mb-6 bg-white p-4 rounded shadow">
-        <h2 className="text-lg font-semibold mb-2">Add Availability</h2>
-        <form onSubmit={handleCreateAvailability} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Header */}
+        <header className="flex items-start justify-between gap-4">
           <div>
-            <label className="block text-sm font-medium">Day of Week</label>
-            <select
-              name="dayOfWeek"
-              value={newAvailability.dayOfWeek}
-              onChange={(e) => handleInputChange(e, setNewAvailability, newAvailability)}
-              className="mt-1 p-2 border rounded w-full"
-              required
-            >
-              {daysOfWeek.map((day) => (
-                <option key={day.value} value={day.value}>
-                  {day.label}
-                </option>
-              ))}
-            </select>
+            <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight text-gray-900">
+              <span
+                className="grid h-9 w-9 place-items-center rounded-lg ring-1 ring-black/5"
+                style={{ background: 'var(--brand)' }}
+              >
+                <Users className="h-5 w-5 text-black/70" />
+              </span>
+              Users
+            </h1>
+            <p className="mt-1 text-gray-600">
+              Manage system users, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+            </p>
+            {pagination?.total && (
+              <p className="mt-1 text-xs text-gray-500">Total records (server): {pagination.total}</p>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium">Start Time</label>
-            <input
-              type="time"
-              name="startTime"
-              value={newAvailability.startTime}
-              onChange={(e) => handleInputChange(e, setNewAvailability, newAvailability)}
-              className="mt-1 p-2 border rounded w-full"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">End Time</label>
-            <input
-              type="time"
-              name="endTime"
-              value={newAvailability.endTime}
-              onChange={(e) => handleInputChange(e, setNewAvailability, newAvailability)}
-              className="mt-1 p-2 border rounded w-full"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Slot Duration (minutes)</label>
-            <input
-              type="number"
-              name="slotDuration"
-              value={newAvailability.slotDuration}
-              onChange={(e) => handleInputChange(e, setNewAvailability, newAvailability)}
-              className="mt-1 p-2 border rounded w-full"
-              min="5"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Active Status</label>
-            <select
-              name="isActive"
-              value={newAvailability.isActive.toString()}
-              onChange={(e) => handleInputChange(e, setNewAvailability, newAvailability)}
-              className="mt-1 p-2 border rounded w-full"
-            >
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <button
-              type="submit"
+
+          {/* Quick actions */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              onClick={fetchUsers}
               disabled={loading}
-              className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+              className="rounded-xl bg-[var(--brand)]/70 text-gray-900 hover:bg-[var(--brand)]/90"
+              aria-label="Refresh list"
             >
-              {loading ? 'Creating...' : 'Add Availability'}
-            </button>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button
+              type="button"
+              onClick={exportCSV}
+              variant="outline"
+              className="rounded-xl border-black/10"
+              aria-label="Export CSV"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
           </div>
-        </form>
-      </div>
+        </header>
 
-      {/* Bulk Update Form */}
-      <div className="mb-6 bg-white p-4 rounded shadow">
-        <h2 className="text-lg font-semibold mb-2">Bulk Update Availability</h2>
-        <form onSubmit={handleBulkUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium">Day of Week</label>
-            <select
-              name="dayOfWeek"
-              value={bulkUpdate.dayOfWeek}
-              onChange={(e) => handleInputChange(e, setBulkUpdate, bulkUpdate)}
-              className="mt-1 p-2 border rounded w-full"
-              required
-            >
-              {daysOfWeek.map((day) => (
-                <option key={day.value} value={day.value}>
-                  {day.label}
-                </option>
-              ))}
-            </select>
+        {error && (
+          <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="alert">
+            <AlertCircle className="mt-0.5 h-4 w-4" />
+            <span>{error}</span>
           </div>
-          <div>
-            <label className="block text-sm font-medium">Active Status</label>
-            <select
-              name="isActive"
-              value={bulkUpdate.isActive.toString()}
-              onChange={(e) => handleInputChange(e, setBulkUpdate, bulkUpdate)}
-              className="mt-1 p-2 border rounded w-full"
-            >
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Reason (if inactive)</label>
-            <input
-              type="text"
-              name="reason"
-              value={bulkUpdate.reason}
-              onChange={(e) => handleInputChange(e, setBulkUpdate, bulkUpdate)}
-              className="mt-1 p-2 border rounded w-full"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
-            >
-              {loading ? 'Updating...' : 'Bulk Update'}
-            </button>
-          </div>
-        </form>
-      </div>
+        )}
 
-      {/* Availability List */}
-      {availability && availability.length > 0 ? (
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="text-lg font-semibold mb-2">Availability</h2>
-          <ul className="space-y-2">
-            {availability.map((slot) => (
-              <li key={slot.availabilityId} className="border p-2 rounded">
-                <p>
-                  <strong>Day:</strong> {daysOfWeek.find((d) => d.value === slot.dayOfWeek)?.label}
-                </p>
-                <p>
-                  <strong>Time:</strong> {formatTimeDisplay(slot.startTime)} to {formatTimeDisplay(slot.endTime)}
-                </p>
-                <p>
-                  <strong>Slot Duration:</strong> {slot.slotDuration} minutes
-                </p>
-                <p>
-                  <strong>Status:</strong> {slot.isActive ? 'Active' : 'Inactive'}
-                </p>
-                <p>
-                  <strong>Created:</strong> {new Date(slot.createdAt).toLocaleString()}
-                </p>
-                <p>
-                  <strong>Updated:</strong> {new Date(slot.updatedAt).toLocaleString()}
-                </p>
-                <p>
-                  <strong>Specialty:</strong> {slot.doctor.specialty}
-                </p>
-                <p>
-                  <strong>Consultation Fee:</strong> ${slot.doctor.consultationFee}
-                </p>
-                <div className="flex space-x-2 mt-2">
-                  <button
-                    onClick={() => setSelectedAvailabilityId(slot.availabilityId)}
-                    className="bg-yellow-500 text-white p-1 rounded hover:bg-yellow-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteAvailability(slot.availabilityId)}
-                    className="bg-red-500 text-white p-1 rounded hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
+        {/* Create User (collapsible, no extra JS) */}
+        <Card className="rounded-2xl border border-black/5 bg-white/80 shadow-xl backdrop-blur">
+          <CardHeader className="pb-0">
+            <details open>
+              <summary className="flex cursor-pointer list-none items-center justify-between py-4">
+                <CardTitle className="flex items-center gap-2 text-base font-medium text-gray-800">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: 'var(--brand)' }}>
+                    <UserPlus className="h-5 w-5 text-black/70" />
+                  </span>
+                  Create New User
+                </CardTitle>
+                <span className="text-xs text-gray-500">Click to collapse/expand</span>
+              </summary>
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-black/10 to-transparent" />
+            </details>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Input
+                placeholder="First Name"
+                value={newUser.firstName}
+                onChange={(e) => handleInputChange("firstName", e.target.value)}
+                required
+                className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]"
+              />
+              <Input
+                placeholder="Last Name"
+                value={newUser.lastName}
+                onChange={(e) => handleInputChange("lastName", e.target.value)}
+                required
+                className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]"
+              />
+              <Input
+                placeholder="Email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                required
+                className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]"
+              />
+              <Input
+                placeholder="Phone Number"
+                value={newUser.phoneNumber}
+                onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                required
+                className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]"
+              />
+              <Select
+                value={newUser.userType}
+                onValueChange={(val) => handleInputChange("userType", val)}
+              >
+                <SelectTrigger className="h-11 rounded-xl border-black/10 bg-white/70 focus:ring-[var(--brand)]">
+                  <SelectValue placeholder="Select User Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="patient">Patient</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="Password"
+                type="password"
+                value={newUser.password}
+                onChange={(e) => handleInputChange("password", e.target.value)}
+                required
+                className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]"
+              />
+              <div className="md:col-span-3 flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="rounded-xl bg-[var(--brand)]/70 text-gray-900 hover:bg-[var(--brand)]/90"
+                >
+                  {loading ? 'Creating...' : 'Create User'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Toolbar */}
+        <Card className="rounded-2xl border border-black/5 bg-white/70 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-white/50">
+          <CardContent className="pt-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full md:max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by name, email, or phone…"
+                  className="h-11 w-full rounded-xl border-black/10 pl-9"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-400" />
+                  <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as any)}>
+                    <SelectTrigger className="h-11 w-[150px] rounded-xl border-black/10">
+                      <SelectValue placeholder="Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All roles</SelectItem>
+                      <SelectItem value="patient">Patient</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="doctor">Doctor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                    <SelectTrigger className="h-11 w-[150px] rounded-xl border-black/10">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                {selectedAvailabilityId === slot.availabilityId && (
-                  <div className="mt-2 p-2 border rounded">
-                    <h3 className="text-md font-semibold">Update Availability</h3>
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleUpdateAvailability(slot.availabilityId);
-                      }}
-                      className="grid grid-cols-1 gap-2"
-                    >
-                      <div>
-                        <label className="block text-sm font-medium">Day of Week</label>
-                        <select
-                          name="dayOfWeek"
-                          value={updateAvailability.dayOfWeek ?? slot.dayOfWeek}
-                          onChange={(e) => handleInputChange(e, setUpdateAvailability, updateAvailability)}
-                          className="mt-1 p-2 border rounded w-full"
-                        >
-                          {daysOfWeek.map((day) => (
-                            <option key={day.value} value={day.value}>
-                              {day.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">Start Time</label>
-                        <input
-                          type="time"
-                          name="startTime"
-                          value={
-                            updateAvailability.startTime
-                              ? formatTimeDisplay(updateAvailability.startTime)
-                              : formatTimeDisplay(slot.startTime)
-                          }
-                          onChange={(e) => handleInputChange(e, setUpdateAvailability, updateAvailability)}
-                          className="mt-1 p-2 border rounded w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">End Time</label>
-                        <input
-                          type="time"
-                          name="endTime"
-                          value={
-                            updateAvailability.endTime
-                              ? formatTimeDisplay(updateAvailability.endTime)
-                              : formatTimeDisplay(slot.endTime)
-                          }
-                          onChange={(e) => handleInputChange(e, setUpdateAvailability, updateAvailability)}
-                          className="mt-1 p-2 border rounded w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">Slot Duration (minutes)</label>
-                        <input
-                          type="number"
-                          name="slotDuration"
-                          value={updateAvailability.slotDuration ?? slot.slotDuration}
-                          onChange={(e) => handleInputChange(e, setUpdateAvailability, updateAvailability)}
-                          className="mt-1 p-2 border rounded w-full"
-                          min="5"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium">Active Status</label>
-                        <select
-                          name="isActive"
-                          value={(updateAvailability.isActive ?? slot.isActive).toString()}
-                          onChange={(e) => handleInputChange(e, setUpdateAvailability, updateAvailability)}
-                          className="mt-1 p-2 border rounded w-full"
-                        >
-                          <option value="true">Active</option>
-                          <option value="false">Inactive</option>
-                        </select>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          type="submit"
-                          disabled={loading}
-                          className="bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-gray-400"
-                        >
-                          {loading ? 'Updating...' : 'Update'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedAvailabilityId(null);
-                            setUpdateAvailability({});
-                          }}
-                          className="bg-gray-500 text-white p-2 rounded hover:bg-gray-600"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                    <div className="border-t pt-4 mt-4">
-                      <h3 className="text-md font-semibold">Update Status Only</h3>
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleUpdateStatus(slot.availabilityId);
-                        }}
-                        className="grid grid-cols-1 gap-2"
-                      >
-                        <div>
-                          <label className="block text-sm font-medium">Status</label>
-                          <select
-                            name="status"
-                            value={updateStatus.status.toString()}
-                            onChange={(e) => handleInputChange(e, setUpdateStatus, updateStatus)}
-                            className="mt-1 p-2 border rounded w-full"
-                          >
-                            <option value="true">Active</option>
-                            <option value="false">Inactive</option>
-                          </select>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            type="submit"
-                            disabled={loading}
-                            className="bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-gray-400"
-                          >
-                            {loading ? 'Updating...' : 'Update Status'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedAvailabilityId(null);
-                              setUpdateStatus({ status: true });
-                            }}
-                            className="bg-gray-500 text-white p-2 rounded hover:bg-gray-600"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
+
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                  <SelectTrigger className="h-11 w-[160px] rounded-xl border-black/10">
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="oldest">Oldest</SelectItem>
+                    <SelectItem value="name">Name A–Z</SelectItem>
+                    <SelectItem value="type">Role A–Z</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(roleFilter !== 'all' || statusFilter !== 'all' || query) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => { setQuery(''); setRoleFilter('all'); setStatusFilter('all'); }}
+                    className="h-11 rounded-xl"
+                  >
+                    Clear
+                  </Button>
                 )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        !loading && <p>No availability slots found.</p>
-      )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Users Table */}
+        <Card className="rounded-2xl border border-black/5 bg-white/80 shadow-xl backdrop-blur">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-medium text-gray-800">User List</CardTitle>
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays className="h-3.5 w-3.5" /> Showing {filteredUsers.length} users
+                </span>
+                {pagination?.total && <span>Server total: {pagination.total}</span>}
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            {loading && !users.length ? (
+              <div className="space-y-3 py-6">
+                <div className="h-10 w-full animate-pulse rounded-xl bg-gray-200/60" />
+                <div className="h-10 w-full animate-pulse rounded-xl bg-gray-200/60" />
+                <div className="h-10 w-full animate-pulse rounded-xl bg-gray-200/60" />
+              </div>
+            ) : filteredUsers.length > 0 ? (
+              <div className="overflow-hidden rounded-xl border border-black/5">
+                <div className="max-h-[60vh] overflow-auto">
+                  <Table className="[&_th]:bg-gray-50">
+                    <TableHeader className="sticky top-0 z-10 bg-gray-50/70 backdrop-blur">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="text-gray-700">Name</TableHead>
+                        <TableHead className="text-gray-700">Email</TableHead>
+                        <TableHead className="text-gray-700">Phone</TableHead>
+                        <TableHead className="text-gray-700">Type</TableHead>
+                        <TableHead className="text-gray-700">Status</TableHead>
+                        <TableHead className="text-gray-700">Verified</TableHead>
+                        <TableHead className="text-gray-700">Created</TableHead>
+                        <TableHead className="text-gray-700">Last Login</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((u, idx) => (
+                        <TableRow
+                          key={u.userId}
+                          className={`transition-colors hover:bg-[var(--brand)]/10 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                        >
+                          <TableCell className="whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <span
+                                className="grid h-9 w-9 place-items-center rounded-full text-xs font-semibold text-gray-800 ring-1 ring-black/5"
+                                style={{
+                                  background:
+                                    'radial-gradient(circle at 30% 30%, var(--brand), #ffffff 70%)',
+                                }}
+                              >
+                                {initials(u.profile.firstName, u.profile.lastName)}
+                              </span>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-900">
+                                  {u.profile.firstName} {u.profile.lastName}
+                                </span>
+                                <span className="text-xs text-gray-500">ID: {u.userId.slice(0, 8)}…</span>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="whitespace-nowrap">{u.email}</TableCell>
+                          <TableCell className="whitespace-nowrap">{u.phoneNumber}</TableCell>
+                          <TableCell className="capitalize">{u.userType}</TableCell>
+
+                          <TableCell>
+                            <Badge className={`rounded-full px-2 py-0.5 text-xs ${statusColors[u.accountStatus]}`}>
+                              {u.accountStatus}
+                            </Badge>
+                          </TableCell>
+
+                          <TableCell className="whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1 ${u.emailVerified ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-gray-50 text-gray-600 ring-gray-200'}`}>
+                                {u.emailVerified ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                                Email
+                              </span>
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1 ${u.phoneVerified ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-gray-50 text-gray-600 ring-gray-200'}`}>
+                                {u.phoneVerified ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                                Phone
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="whitespace-nowrap">
+                            {new Date(u.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+                <div
+                  className="grid h-12 w-12 place-items-center rounded-2xl ring-1 ring-black/5"
+                  style={{ background: 'var(--brand)' }}
+                >
+                  <Users className="h-6 w-6 text-black/70" />
+                </div>
+                <p className="text-sm text-gray-600">No users match your filters.</p>
+                <Button
+                  variant="ghost"
+                  onClick={() => { setQuery(''); setRoleFilter('all'); setStatusFilter('all'); }}
+                  className="mt-1 rounded-xl"
+                >
+                  Reset filters
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
