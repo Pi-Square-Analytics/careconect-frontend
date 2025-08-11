@@ -2,9 +2,9 @@
 // app/admin/doctors/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import api from '@/lib/api/api'; // Import the api instance directly
+import api from '@/lib/api/api';
 
 interface Doctor {
   doctorId: string;
@@ -21,10 +21,7 @@ interface Doctor {
   user?: {
     email: string;
     phoneNumber: string;
-    profile: {
-      firstName: string;
-      lastName: string;
-    };
+    profile: { firstName: string; lastName: string };
   };
 }
 
@@ -63,10 +60,13 @@ interface Pagination {
 
 export default function DoctorsPage() {
   const { user } = useAuthHooks();
+
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // forms
   const [newDoctor, setNewDoctor] = useState<NewDoctor>({
     email: '',
     phoneNumber: '',
@@ -81,32 +81,28 @@ export default function DoctorsPage() {
   const [updateDoctor, setUpdateDoctor] = useState<UpdateDoctor>({});
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ isActive: true });
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
-    specialty: '',
-    isActive: '',
-    page: '1',
-  });
+
+  // filters/sort/search
+  const [filters, setFilters] = useState({ specialty: '', isActive: '', page: '1' });
+  const [query, setQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'specialty' | 'feeAsc' | 'feeDesc' | 'newest'>('newest');
 
   useEffect(() => {
     const fetchDoctors = async () => {
       if (!user) return;
-
       setLoading(true);
       setError(null);
       try {
-        const queryParams = new URLSearchParams();
-        if (filters.specialty) queryParams.append('specialty', filters.specialty);
-        if (filters.isActive) queryParams.append('isActive', filters.isActive);
-        if (filters.page) queryParams.append('page', filters.page);
+        const qs = new URLSearchParams();
+        if (filters.specialty) qs.append('specialty', filters.specialty);
+        if (filters.isActive) qs.append('isActive', filters.isActive);
+        if (filters.page) qs.append('page', filters.page);
 
-        const queryString = queryParams.toString();
-        const url = `/doctors/${queryString ? `?${queryString}` : ''}`;
-
+        const url = `/doctors/${qs.toString() ? `?${qs.toString()}` : ''}`;
         const response = await api.get(url);
 
         let fetchedDoctors: Doctor[] = [];
         let fetchedPagination: Pagination | null = null;
-
         if (response.data) {
           if (response.data.data) {
             fetchedDoctors = response.data.data.doctors || response.data.data || [];
@@ -124,17 +120,16 @@ export default function DoctorsPage() {
         setDoctors(Array.isArray(fetchedDoctors) ? fetchedDoctors : []);
         setPagination(fetchedPagination);
       } catch (err: any) {
-        let errorMessage = 'Failed to fetch doctors';
-        if (typeof err === 'string') errorMessage = err;
-        else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-        else if (err?.message) errorMessage = err.message;
-        setError(errorMessage);
+        let msg = 'Failed to fetch doctors';
+        if (typeof err === 'string') msg = err;
+        else if (err?.response?.data?.message) msg = err.response.data.message;
+        else if (err?.message) msg = err.message;
+        setError(msg);
         setDoctors([]);
       } finally {
         setLoading(false);
       }
     };
-
     fetchDoctors();
   }, [user, filters]);
 
@@ -182,11 +177,11 @@ export default function DoctorsPage() {
         isActive: true,
       });
     } catch (err: any) {
-      let errorMessage = 'Failed to create doctor';
-      if (typeof err === 'string') errorMessage = err;
-      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-      else if (err?.message) errorMessage = err.message;
-      setError(errorMessage);
+      let msg = 'Failed to create doctor';
+      if (typeof err === 'string') msg = err;
+      else if (err?.response?.data?.message) msg = err.response.data.message;
+      else if (err?.message) msg = err.message;
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -201,11 +196,11 @@ export default function DoctorsPage() {
       setSelectedDoctorId(null);
       setUpdateDoctor({});
     } catch (err: any) {
-      let errorMessage = 'Failed to update doctor';
-      if (typeof err === 'string') errorMessage = err;
-      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-      else if (err?.message) errorMessage = err.message;
-      setError(errorMessage);
+      let msg = 'Failed to update doctor';
+      if (typeof err === 'string') msg = err;
+      else if (err?.response?.data?.message) msg = err.response.data.message;
+      else if (err?.message) msg = err.message;
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -220,11 +215,11 @@ export default function DoctorsPage() {
       setSelectedDoctorId(null);
       setUpdateStatus({ isActive: true });
     } catch (err: any) {
-      let errorMessage = 'Failed to update status';
-      if (typeof err === 'string') errorMessage = err;
-      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-      else if (err?.message) errorMessage = err.message;
-      setError(errorMessage);
+      let msg = 'Failed to update status';
+      if (typeof err === 'string') msg = err;
+      else if (err?.response?.data?.message) msg = err.response.data.message;
+      else if (err?.message) msg = err.message;
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -238,11 +233,11 @@ export default function DoctorsPage() {
       await api.delete(`/doctors/${doctorId}`);
       await refetchDoctors();
     } catch (err: any) {
-      let errorMessage = 'Failed to delete doctor';
-      if (typeof err === 'string') errorMessage = err;
-      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-      else if (err?.message) errorMessage = err.message;
-      setError(errorMessage);
+      let msg = 'Failed to delete doctor';
+      if (typeof err === 'string') msg = err;
+      else if (err?.response?.data?.message) msg = err.response.data.message;
+      else if (err?.message) msg = err.message;
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -254,35 +249,80 @@ export default function DoctorsPage() {
     state: any
   ) => {
     const { name, value } = e.target;
-
-    let processedValue: any = value;
-    if (name === 'isActive') processedValue = value === 'true';
-    else if (name === 'consultationFee') processedValue = parseFloat(value) || 0;
-
-    setState({ ...state, [name]: processedValue });
+    let processed: any = value;
+    if (name === 'isActive') processed = value === 'true';
+    else if (name === 'consultationFee') processed = parseFloat(value) || 0;
+    setState({ ...state, [name]: processed });
   };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+    setFilters({ ...filters, [e.target.name]: e.target.value, page: '1' });
   };
 
   const handlePageChange = (newPage: number) => {
     setFilters({ ...filters, page: newPage.toString() });
   };
 
-  const getDoctorName = (doctor: Doctor) => {
-    if (doctor.user?.profile) {
-      return `${doctor.user.profile.firstName} ${doctor.user.profile.lastName}`;
+  const getDoctorName = (d: Doctor) =>
+    d.user?.profile ? `${d.user.profile.firstName} ${d.user.profile.lastName}` : `${d.firstName} ${d.lastName}`;
+  const getDoctorEmail = (d: Doctor) => d.user?.email || d.email;
+  const getDoctorPhone = (d: Doctor) => d.user?.phoneNumber || d.phoneNumber;
+
+  // client-side search/sort
+  const visibleDoctors = useMemo(() => {
+    let list = [...doctors];
+
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter(d => {
+        const base = `${getDoctorName(d)} ${d.specialty} ${d.medicalLicenseNumber} ${getDoctorEmail(d)} ${getDoctorPhone(d)}`.toLowerCase();
+        return base.includes(q);
+      });
     }
-    return `${doctor.firstName} ${doctor.lastName}`;
-  };
 
-  const getDoctorEmail = (doctor: Doctor) => {
-    return doctor.user?.email || doctor.email;
-  };
+    switch (sortBy) {
+      case 'name':
+        list.sort((a, b) => getDoctorName(a).localeCompare(getDoctorName(b)));
+        break;
+      case 'specialty':
+        list.sort((a, b) => (a.specialty || '').localeCompare(b.specialty || ''));
+        break;
+      case 'feeAsc':
+        list.sort((a, b) => (a.consultationFee || 0) - (b.consultationFee || 0));
+        break;
+      case 'feeDesc':
+        list.sort((a, b) => (b.consultationFee || 0) - (a.consultationFee || 0));
+        break;
+      case 'newest':
+        list.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+        break;
+    }
+    return list;
+  }, [doctors, query, sortBy]);
 
-  const getDoctorPhone = (doctor: Doctor) => {
-    return doctor.user?.phoneNumber || doctor.phoneNumber;
+  const exportCSV = () => {
+    const rows = [
+      ['Doctor ID', 'Name', 'Email', 'Phone', 'License', 'Specialty', 'Fee', 'Active', 'Created'],
+      ...visibleDoctors.map(d => [
+        d.doctorId,
+        getDoctorName(d),
+        getDoctorEmail(d),
+        getDoctorPhone(d),
+        d.medicalLicenseNumber,
+        d.specialty,
+        d.consultationFee,
+        d.isActive ? 'true' : 'false',
+        new Date(d.createdAt).toISOString(),
+      ]),
+    ];
+    const csv = rows.map(r => r.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `doctors-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (!user) {
@@ -293,74 +333,102 @@ export default function DoctorsPage() {
   const initials = (f?: string, l?: string) => ((f?.[0] ?? '') + (l?.[0] ?? '') || 'D').toUpperCase();
 
   return (
-    <div
-      className="p-6"
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
-    >
-      {/* Brand ribbon */}
+    <div className="p-6" style={{ ['--brand' as any]: BRAND } as React.CSSProperties}>
+      {/* brand ribbon */}
       <div
-        className="mx-auto mb-4 h-1 max-w-6xl rounded-full"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)',
-        }}
+        className="mx-auto mb-6 h-1 max-w-6xl rounded-full"
+        style={{ background: 'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }}
         aria-hidden
       />
 
       <div className="mx-auto max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Doctors</h1>
-          <p className="mt-1 text-gray-600">
-            Manage doctors, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
-          </p>
+        {/* Header */}
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Doctors</h1>
+            <p className="mt-1 text-gray-600">
+              Manage doctors, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+            </p>
+            {pagination?.total && (
+              <p className="mt-2 text-xs text-gray-500">Total doctors: {pagination.total}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={exportCSV}
+              className="rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow hover:bg-gray-50"
+            >
+              Export CSV
+            </button>
+          </div>
         </header>
 
         {loading && (
-          <div className="rounded-xl border border-black/5 bg-white/80 p-4 text-sm text-gray-600 shadow-sm backdrop-blur">
-            Loading...
+          <div className="space-y-3">
+            <div className="h-10 w-full animate-pulse rounded-xl bg-gray-200/60" />
+            <div className="h-10 w-full animate-pulse rounded-xl bg-gray-200/60" />
+            <div className="h-10 w-full animate-pulse rounded-xl bg-gray-200/60" />
           </div>
         )}
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700" role="alert">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700" role="alert">
             {error}
           </div>
         )}
 
-        {/* Filters */}
-        <section className="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-xl backdrop-blur">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-medium text-gray-800">Filter Doctors</h2>
-            {(pagination?.total || filters.specialty || filters.isActive) && (
-              <span className="text-xs text-gray-500">
-                {pagination?.total ? `Total: ${pagination.total}` : '—'}
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Specialty</label>
+        {/* Toolbar */}
+        <section className="rounded-2xl border border-black/5 bg-white/70 p-4 shadow-xl backdrop-blur">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <label className="grid gap-1">
+              <span className="text-sm font-medium text-gray-700">Search</span>
               <input
-                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search name, license, email, phone…"
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm font-medium text-gray-700">Filter by Specialty</span>
+              <input
                 name="specialty"
                 value={filters.specialty}
                 onChange={handleFilterChange}
-                className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 placeholder="e.g., Cardiology"
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Status</label>
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm font-medium text-gray-700">Status</span>
               <select
                 name="isActive"
                 value={filters.isActive}
                 onChange={handleFilterChange}
-                className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
               >
                 <option value="">All</option>
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
               </select>
-            </div>
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm font-medium text-gray-700">Sort</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
+              >
+                <option value="newest">Newest</option>
+                <option value="name">Name A–Z</option>
+                <option value="specialty">Specialty A–Z</option>
+                <option value="feeAsc">Fee ↑</option>
+                <option value="feeDesc">Fee ↓</option>
+              </select>
+            </label>
           </div>
         </section>
 
@@ -374,83 +442,27 @@ export default function DoctorsPage() {
             <div className="h-px w-full bg-gradient-to-r from-transparent via-black/10 to-transparent" />
             <div className="p-5">
               <form onSubmit={handleCreateDoctor} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">First Name</label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={newDoctor.firstName}
-                    onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={newDoctor.lastName}
-                    onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={newDoctor.email}
-                    onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                  <input
-                    type="text"
-                    name="phoneNumber"
-                    value={newDoctor.phoneNumber}
-                    onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Password</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={newDoctor.password}
-                    onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Medical License Number</label>
-                  <input
-                    type="text"
-                    name="medicalLicenseNumber"
-                    value={newDoctor.medicalLicenseNumber}
-                    onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Specialty</label>
-                  <input
-                    type="text"
-                    name="specialty"
-                    value={newDoctor.specialty}
-                    onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                    required
-                  />
-                </div>
+                {[
+                  { label: 'First Name', name: 'firstName', type: 'text' },
+                  { label: 'Last Name', name: 'lastName', type: 'text' },
+                  { label: 'Email', name: 'email', type: 'email' },
+                  { label: 'Phone Number', name: 'phoneNumber', type: 'text' },
+                  { label: 'Password', name: 'password', type: 'password' },
+                  { label: 'Medical License Number', name: 'medicalLicenseNumber', type: 'text' },
+                  { label: 'Specialty', name: 'specialty', type: 'text' },
+                ].map(f => (
+                  <div key={f.name}>
+                    <label className="block text-sm font-medium text-gray-700">{f.label}</label>
+                    <input
+                      type={f.type}
+                      name={f.name}
+                      value={(newDoctor as any)[f.name]}
+                      onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
+                      className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                      required
+                    />
+                  </div>
+                ))}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Consultation Fee</label>
                   <input
@@ -458,7 +470,7 @@ export default function DoctorsPage() {
                     name="consultationFee"
                     value={newDoctor.consultationFee}
                     onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
                     required
                     min="0"
                     step="0.01"
@@ -470,7 +482,7 @@ export default function DoctorsPage() {
                     name="isActive"
                     value={newDoctor.isActive.toString()}
                     onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
-                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                    className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
                   >
                     <option value="true">Active</option>
                     <option value="false">Inactive</option>
@@ -480,9 +492,9 @@ export default function DoctorsPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="inline-flex items-center rounded-xl bg-[var(--brand)]/70 px-4 py-2.5 font-medium text-gray-900 ring-1 ring-[var(--brand)]/60 transition hover:bg-[var(--brand)]/90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center rounded-xl bg-[var(--brand)]/80 px-4 py-2.5 font-medium text-gray-900 ring-1 ring-[var(--brand)]/60 transition hover:bg-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {loading ? 'Creating...' : 'Create Doctor'}
+                    {loading ? 'Creating…' : 'Create Doctor'}
                   </button>
                 </div>
               </form>
@@ -490,204 +502,224 @@ export default function DoctorsPage() {
           </details>
         </section>
 
-        {/* Doctor List */}
-        {doctors && doctors.length > 0 ? (
-          <section className="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-xl backdrop-blur">
-            <h2 className="mb-2 text-base font-medium text-gray-800">
-              Doctor List <span className="text-xs text-gray-500">({doctors.length} found)</span>
-            </h2>
-            <ul className="divide-y divide-black/5">
-              {doctors.map((doctor) => (
-                <li key={doctor.doctorId} className="py-4">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700 ring-1 ring-black/5">
-                        {initials(
-                          doctor.user?.profile?.firstName ?? doctor.firstName,
-                          doctor.user?.profile?.lastName ?? doctor.lastName
-                        )}
-                      </span>
-                      <div>
-                        <p className="font-medium text-gray-900">{getDoctorName(doctor)}</p>
-                        <p className="text-xs text-gray-500">#{doctor.medicalLicenseNumber}</p>
+        {/* Table */}
+        {visibleDoctors.length > 0 ? (
+          <section className="overflow-hidden rounded-2xl border border-black/5 bg-white/80 shadow-xl backdrop-blur">
+            <div className="max-h-[65vh] overflow-auto">
+              <table className="w-full text-left">
+                <thead className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur">
+                  <tr className="[&>th]:px-4 [&>th]:py-3">
+                    <th className="text-gray-700">Doctor</th>
+                    <th className="text-gray-700">Specialty</th>
+                    <th className="text-gray-700">Contact</th>
+                    <th className="text-gray-700">License</th>
+                    <th className="text-gray-700">Fee</th>
+                    <th className="text-gray-700">Status</th>
+                    <th className="text-gray-700">Created</th>
+                    <th className="text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="[&>tr]:border-t [&>tr]:border-black/5">
+                  {visibleDoctors.map((d, idx) => (
+                    <tr
+                      key={d.doctorId}
+                      className={`transition-colors hover:bg-[var(--brand)]/10 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700 ring-1 ring-black/5">
+                            {initials(
+                              d.user?.profile?.firstName ?? d.firstName,
+                              d.user?.profile?.lastName ?? d.lastName
+                            )}
+                          </span>
+                          <div>
+                            <div className="font-medium text-gray-900">{getDoctorName(d)}</div>
+                            <div className="text-xs text-gray-500">{d.doctorId}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{d.specialty}</td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-gray-700">{getDoctorEmail(d)}</div>
+                        <div className="text-xs text-gray-500">{getDoctorPhone(d)}</div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">#{d.medicalLicenseNumber}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">${d.consultationFee}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs ring-1 ${d.isActive ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-rose-200'}`}>
+                          {d.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{new Date(d.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setSelectedDoctorId(d.doctorId)}
+                            className="rounded-lg bg-yellow-100 px-3 py-1.5 text-xs font-medium text-yellow-900 ring-1 ring-yellow-200 hover:bg-yellow-200"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDoctor(d.doctorId)}
+                            className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-medium text-rose-900 ring-1 ring-rose-200 hover:bg-rose-200"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* inline editor */}
+            {selectedDoctorId && (
+              <div className="border-t border-black/5 p-5">
+                {(() => {
+                  const d = doctors.find(x => x.doctorId === selectedDoctorId)!;
+                  return (
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="rounded-xl border border-black/5 bg-white p-4">
+                        <h3 className="mb-3 text-sm font-semibold text-gray-800">Update Doctor</h3>
+                        <form
+                          onSubmit={(e) => { e.preventDefault(); handleUpdateDoctor(d.doctorId); }}
+                          className="grid grid-cols-1 gap-4"
+                        >
+                          <label className="grid gap-1">
+                            <span className="text-sm font-medium text-gray-700">Medical License Number</span>
+                            <input
+                              type="text"
+                              name="medicalLicenseNumber"
+                              value={updateDoctor.medicalLicenseNumber ?? d.medicalLicenseNumber}
+                              onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
+                              className="h-11 rounded-xl border border-black/10 bg-white px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                            />
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="text-sm font-medium text-gray-700">Specialty</span>
+                            <input
+                              type="text"
+                              name="specialty"
+                              value={updateDoctor.specialty ?? d.specialty}
+                              onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
+                              className="h-11 rounded-xl border border-black/10 bg-white px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                            />
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="text-sm font-medium text-gray-700">Consultation Fee</span>
+                            <input
+                              type="number"
+                              name="consultationFee"
+                              value={updateDoctor.consultationFee ?? d.consultationFee}
+                              onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
+                              min={0}
+                              step="0.01"
+                              className="h-11 rounded-xl border border-black/10 bg-white px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                            />
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="text-sm font-medium text-gray-700">Active Status</span>
+                            <select
+                              name="isActive"
+                              value={(updateDoctor.isActive ?? d.isActive).toString()}
+                              onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
+                              className="h-11 rounded-xl border border-black/10 bg-white px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                            >
+                              <option value="true">Active</option>
+                              <option value="false">Inactive</option>
+                            </select>
+                          </label>
+                          <div className="flex gap-2 pt-2">
+                            <button
+                              type="submit"
+                              disabled={loading}
+                              className="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              {loading ? 'Updating…' : 'Update'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDoctorId(null)}
+                              className="rounded-lg bg-gray-200 px-4 py-2 text-gray-900 hover:bg-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+
+                      <div className="rounded-xl border border-black/5 bg-white p-4">
+                        <h3 className="mb-3 text-sm font-semibold text-gray-800">Update Status</h3>
+                        <form
+                          onSubmit={(e) => { e.preventDefault(); handleUpdateStatus(d.doctorId); }}
+                          className="grid grid-cols-1 gap-4"
+                        >
+                          <label className="grid gap-1">
+                            <span className="text-sm font-medium text-gray-700">Status</span>
+                            <select
+                              name="isActive"
+                              value={updateStatus.isActive.toString()}
+                              onChange={(e) => handleInputChange(e, setUpdateStatus, updateStatus)}
+                              className="h-11 rounded-xl border border-black/10 bg-white px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                            >
+                              <option value="true">Active</option>
+                              <option value="false">Inactive</option>
+                            </select>
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="text-sm font-medium text-gray-700">Reason (if inactive)</span>
+                            <input
+                              type="text"
+                              name="reason"
+                              value={updateStatus.reason || ''}
+                              onChange={(e) => handleInputChange(e, setUpdateStatus, updateStatus)}
+                              placeholder="Optional reason"
+                              className="h-11 rounded-xl border border-black/10 bg-white px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                            />
+                          </label>
+                          <div className="flex gap-2 pt-2">
+                            <button
+                              type="submit"
+                              disabled={loading}
+                              className="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              {loading ? 'Updating…' : 'Update Status'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDoctorId(null)}
+                              className="rounded-lg bg-gray-200 px-4 py-2 text-gray-900 hover:bg-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-x-6 text-sm">
-                      <p className="text-gray-700"><span className="font-medium">Specialty:</span> {doctor.specialty}</p>
-                      <p className="text-gray-700"><span className="font-medium">Fee:</span> ${doctor.consultationFee}</p>
-                      <p className="text-gray-700"><span className="font-medium">Email:</span> {getDoctorEmail(doctor)}</p>
-                      <p className="text-gray-700"><span className="font-medium">Phone:</span> {getDoctorPhone(doctor)}</p>
-                      <p className="text-gray-700"><span className="font-medium">Created:</span> {new Date(doctor.createdAt).toLocaleDateString()}</p>
-                      <p className="text-gray-700">
-                        <span className="font-medium">Status:</span>
-                        <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ring-1 ${doctor.isActive ? 'bg-green-100 text-green-800 ring-green-200' : 'bg-red-100 text-red-800 ring-red-200'}`}>
-                          {doctor.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedDoctorId(doctor.doctorId)}
-                      className="rounded-lg bg-yellow-100 px-3 py-1.5 text-sm font-medium text-yellow-900 ring-1 ring-yellow-200 hover:bg-yellow-200"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDoctor(doctor.doctorId)}
-                      className="rounded-lg bg-red-100 px-3 py-1.5 text-sm font-medium text-red-900 ring-1 ring-red-200 hover:bg-red-200"
-                    >
-                      Delete
-                    </button>
-                  </div>
-
-                  {selectedDoctorId === doctor.doctorId && (
-                    <div className="mt-4 rounded-xl border border-black/5 bg-gray-50 p-4">
-                      <h3 className="mb-3 text-sm font-semibold text-gray-800">Update Doctor</h3>
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleUpdateDoctor(doctor.doctorId);
-                        }}
-                        className="grid grid-cols-1 gap-4 md:grid-cols-2"
-                      >
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Medical License Number</label>
-                          <input
-                            type="text"
-                            name="medicalLicenseNumber"
-                            value={updateDoctor.medicalLicenseNumber || doctor.medicalLicenseNumber}
-                            onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
-                            className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Specialty</label>
-                          <input
-                            type="text"
-                            name="specialty"
-                            value={updateDoctor.specialty || doctor.specialty}
-                            onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
-                            className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Consultation Fee</label>
-                          <input
-                            type="number"
-                            name="consultationFee"
-                            value={updateDoctor.consultationFee || doctor.consultationFee}
-                            onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
-                            className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Active Status</label>
-                          <select
-                            name="isActive"
-                            value={(updateDoctor.isActive ?? doctor.isActive).toString()}
-                            onChange={(e) => handleInputChange(e, setUpdateDoctor, updateDoctor)}
-                            className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                          >
-                            <option value="true">Active</option>
-                            <option value="false">Inactive</option>
-                          </select>
-                        </div>
-                        <div className="md:col-span-2 flex gap-2">
-                          <button
-                            type="submit"
-                            disabled={loading}
-                            className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-60"
-                          >
-                            {loading ? 'Updating...' : 'Update'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedDoctorId(null)}
-                            className="rounded-lg bg-gray-200 px-4 py-2 text-gray-900 hover:bg-gray-300"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-
-                      <hr className="my-4" />
-
-                      <h3 className="mb-3 text-sm font-semibold text-gray-800">Update Status</h3>
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleUpdateStatus(doctor.doctorId);
-                        }}
-                        className="grid grid-cols-1 gap-4"
-                      >
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Status</label>
-                          <select
-                            name="isActive"
-                            value={updateStatus.isActive.toString()}
-                            onChange={(e) => handleInputChange(e, setUpdateStatus, updateStatus)}
-                            className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                          >
-                            <option value="true">Active</option>
-                            <option value="false">Inactive</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Reason (if inactive)</label>
-                          <input
-                            type="text"
-                            name="reason"
-                            value={updateStatus.reason || ''}
-                            onChange={(e) => handleInputChange(e, setUpdateStatus, updateStatus)}
-                            className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-                            placeholder="Optional reason for status change"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="submit"
-                            disabled={loading}
-                            className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-60"
-                          >
-                            {loading ? 'Updating...' : 'Update Status'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedDoctorId(null)}
-                            className="rounded-lg bg-gray-200 px-4 py-2 text-gray-900 hover:bg-gray-300"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            {/* Pagination */}
+                  );
+                })()}
+              </div>
+            )}
+            {/* pagination */}
             {pagination && (
-              <div className="mt-6 flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  Page {pagination.page} of {pagination.pages} • Total Doctors: {pagination.total}
+              <div className="flex items-center justify-between border-t border-black/5 p-4">
+                <p className="text-xs text-gray-500">
+                  Page {pagination.page} of {pagination.pages} • Total: {pagination.total}
                 </p>
                 <div className="flex gap-2">
                   <button
                     disabled={!pagination.hasPrev || loading}
                     onClick={() => handlePageChange(pagination.page - 1)}
-                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-300 disabled:opacity-60"
+                    className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                   >
                     Previous
                   </button>
                   <button
                     disabled={!pagination.hasNext || loading}
                     onClick={() => handlePageChange(pagination.page + 1)}
-                    className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-300 disabled:opacity-60"
+                    className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                   >
                     Next
                   </button>
@@ -696,8 +728,8 @@ export default function DoctorsPage() {
             )}
           </section>
         ) : (
-          <div className="rounded-2xl border border-black/5 bg-white/80 p-6 text-center text-gray-500 shadow-xl backdrop-blur">
-            {loading ? 'Loading doctors...' : 'No doctors found.'}
+          <div className="rounded-2xl border border-black/5 bg-white/80 p-12 text-center text-gray-600 shadow-xl backdrop-blur">
+            {loading ? 'Loading doctors…' : 'No doctors found.'}
           </div>
         )}
       </div>
