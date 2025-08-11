@@ -16,6 +16,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('accessToken');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse['data']> => {
   try {
     const response = await api.post<AuthResponse>('/auth/login', credentials);
@@ -39,6 +50,17 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
   } catch (error) {
     const err = error as AxiosError<{ message?: string; error?: string }>;
     throw err.response?.data?.message || err.response?.data?.error || 'Registration failed';
+  }
+};
+
+// Add explicit get function
+export const get = async <T>(url: string): Promise<T> => {
+  try {
+    const response = await api.get<T>(url);
+    return response.data;
+  } catch (error) {
+    const err = error as AxiosError<{ message?: string; error?: string }>;
+    throw err.response?.data?.message || err.response?.data?.error || 'Request failed';
   }
 };
 
