@@ -11,6 +11,8 @@ export interface User {
   lastLogin: string | null;
   loginAttempts: number | null;
   accountLockedUntil: string | null;
+  doctorId?: string; // Added for doctors
+  patientId?: string; // Added for patients
   profile: {
     firstName: string;
     lastName: string;
@@ -31,6 +33,8 @@ export interface LoginResponseData {
 }
 
 export interface RegisterResponseData {
+  patientId: string;
+  doctorId: string;
   userId: string;
   email: string;
   phoneNumber: string;
