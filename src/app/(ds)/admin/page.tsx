@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
 import { get } from '@/lib/api/api';
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Users, CalendarCheck, FileText, RefreshCcw, Download } from "lucide-react";
 
