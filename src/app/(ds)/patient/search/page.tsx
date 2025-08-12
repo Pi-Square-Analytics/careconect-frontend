@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import { api } from '@/lib/api/api';
+import  api  from '@/lib/api/api';
 
 export default function SearchDoctorsPage() {
   const { user } = useAuthHooks();

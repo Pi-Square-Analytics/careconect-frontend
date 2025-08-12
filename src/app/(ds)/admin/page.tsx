@@ -75,6 +75,7 @@ export default function AdminDashboard() {
       setTimeout(() => setNotice(null), 1800);
     } catch (e) {
       setError('Failed to refresh.');
+      console.log(e)
     } finally {
       setLoading(false);
     }
