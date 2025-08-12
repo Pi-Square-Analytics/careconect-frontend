@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
 import  api  from '@/lib/api/api';
 
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/Button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
 import  api  from '@/lib/api/api';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
