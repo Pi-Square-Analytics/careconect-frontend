@@ -11,6 +11,8 @@ export interface User {
   lastLogin: string | null;
   loginAttempts: number | null;
   accountLockedUntil: string | null;
+  doctorId?: string; // Added for doctors
+  patientId?: string; // Added for patients
   profile: {
     firstName: string;
     lastName: string;
@@ -18,8 +20,9 @@ export interface User {
 }
 
 export interface AuthResponse {
-  error: string;
   success: boolean;
+  message?: string;
+  error?: string;
   data: LoginResponseData | RegisterResponseData;
 }
 
@@ -30,10 +33,11 @@ export interface LoginResponseData {
 }
 
 export interface RegisterResponseData {
+  patientId: string;
+  doctorId: string;
   userId: string;
   email: string;
   phoneNumber: string;
-  passwordHash: string;
   userType: 'patient';
   accountStatus: string;
   emailVerified: boolean | null;
@@ -52,6 +56,7 @@ export interface RegisterResponseData {
 export interface AuthError {
   success: false;
   error: string;
+  message?: string;
 }
 
 export interface LoginCredentials {
