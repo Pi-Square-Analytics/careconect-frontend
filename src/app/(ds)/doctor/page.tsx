@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import  api  from '@/lib/api/api';
+import { useDoctorAppointments } from '@/hooks/useAppointments';
+// import { Appointment } from '@/types/appointment';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/badge';
@@ -26,115 +27,54 @@ import {
   XCircle,
 } from 'lucide-react';
 
-type AppointmentStatus = 'scheduled' | 'completed' | 'cancelled';
-
-interface Appointment {
-  appointmentId: string;
-  scheduledDate: string; // ISO
-  reason: string;
-  status: AppointmentStatus;
-  patient: {
-    firstName: string;
-    lastName: string;
-    email?: string;
-    phoneNumber?: string;
-  };
-  location?: string;
-}
-
 const BRAND = '#C4E1E1';
 
-const statusBadge: Record<AppointmentStatus, string> = {
+const statusBadge: Record<string, string> = {
   scheduled: 'bg-amber-100 text-amber-800 ring-1 ring-amber-200',
   completed: 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200',
   cancelled: 'bg-rose-100 text-rose-800 ring-1 ring-rose-200',
+  rescheduled: 'bg-blue-100 text-blue-800 ring-1 ring-blue-200',
 };
 
-const fallbackAppointments: Appointment[] = [
-  {
-    appointmentId: 'APPT-001',
-    scheduledDate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    reason: 'General check-up',
-    status: 'scheduled',
-    patient: { firstName: 'Aline', lastName: 'Mukamana', phoneNumber: '+250 7XX XXX XXX' },
-    location: 'Room 203',
-  },
-  {
-    appointmentId: 'APPT-002',
-    scheduledDate: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-    reason: 'Follow-up: blood pressure',
-    status: 'scheduled',
-    patient: { firstName: 'Eric', lastName: 'Niyonsaba', phoneNumber: '+250 7XX XXX XXX' },
-    location: 'Room 205',
-  },
-  {
-    appointmentId: 'APPT-003',
-    scheduledDate: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    reason: 'Post-op review',
-    status: 'completed',
-    patient: { firstName: 'Grace', lastName: 'Uwase' },
-    location: 'Room 101',
-  },
-  {
-    appointmentId: 'APPT-004',
-    scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    reason: 'Dermatology consult',
-    status: 'cancelled',
-    patient: { firstName: 'Paul', lastName: 'Habimana' },
-    location: 'Room 107',
-  },
-];
+// Helper to construct Date object from date and time strings
+const getDateTime = (dateStr: string, timeStr: string) => {
+  return new Date(`${dateStr}T${timeStr}`);
+};
 
 export default function DoctorDashboard() {
   const { user } = useAuthHooks();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data: appointments = [], isLoading: loading, error, refetch } = useDoctorAppointments();
 
   // UI state
   const [query, setQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | AppointmentStatus>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | string>('all');
   const [sortBy, setSortBy] = useState<'soonest' | 'latest' | 'patient'>('soonest');
-
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await api.get('/appointments/doctor-appointments');
-        const data = response?.data?.data as Appointment[] | undefined;
-        // use API data, else graceful dummy fallback
-        setAppointments(Array.isArray(data) && data.length ? data : fallbackAppointments);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to fetch appointments');
-        setAppointments(fallbackAppointments); // still show a nice UI
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user) fetchAppointments();
-  }, [user]);
 
   if (!user) return null;
 
   // derive metrics
-  const now = Date.now();
+  const now = new Date();
   const kpis = useMemo(() => {
-    const upcoming = appointments.filter(a => new Date(a.scheduledDate).getTime() >= now && a.status === 'scheduled').length;
+    const upcoming = appointments.filter(a => {
+      const dt = getDateTime(a.scheduledDate, a.scheduledTime);
+      return dt.getTime() >= now.getTime() && a.status === 'scheduled';
+    }).length;
+
     const completedToday = appointments.filter(a => {
-      const d = new Date(a.scheduledDate);
-      const today = new Date();
+      const d = getDateTime(a.scheduledDate, a.scheduledTime);
       return (
         a.status === 'completed' &&
-        d.getFullYear() === today.getFullYear() &&
-        d.getMonth() === today.getMonth() &&
-        d.getDate() === today.getDate()
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
       );
     }).length;
+
     const cancelled = appointments.filter(a => a.status === 'cancelled').length;
-    const totalPatients = new Set(appointments.map(a => `${a.patient.firstName} ${a.patient.lastName}`)).size;
-    return { upcoming, completedToday, cancelled, totalPatients };
-  }, [appointments, now]);
+    const uniquePatients = new Set(appointments.map(a => a.patientId)).size;
+
+    return { upcoming, completedToday, cancelled, totalPatients: uniquePatients };
+  }, [appointments]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // search/filter/sort
   const filtered = useMemo(() => {
@@ -142,11 +82,10 @@ export default function DoctorDashboard() {
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(a => {
-        const p = `${a.patient.firstName} ${a.patient.lastName}`.toLowerCase();
+        const pName = a.patient ? `${a.patient.firstName} ${a.patient.lastName}`.toLowerCase() : '';
         return (
-          p.includes(q) ||
+          pName.includes(q) ||
           (a.reason ?? '').toLowerCase().includes(q) ||
-          (a.location ?? '').toLowerCase().includes(q) ||
           (a.appointmentId ?? '').toLowerCase().includes(q)
         );
       });
@@ -154,38 +93,29 @@ export default function DoctorDashboard() {
     if (filterStatus !== 'all') {
       list = list.filter(a => a.status === filterStatus);
     }
-    switch (sortBy) {
-      case 'soonest':
-        list.sort((a, b) => +new Date(a.scheduledDate) - +new Date(b.scheduledDate));
-        break;
-      case 'latest':
-        list.sort((a, b) => +new Date(b.scheduledDate) - +new Date(a.scheduledDate));
-        break;
-      case 'patient':
-        list.sort((a, b) =>
-          `${a.patient.firstName} ${a.patient.lastName}`.localeCompare(
-            `${b.patient.firstName} ${b.patient.lastName}`
-          )
-        );
-        break;
-    }
+
+    list.sort((a, b) => {
+      const dateA = getDateTime(a.scheduledDate, a.scheduledTime).getTime();
+      const dateB = getDateTime(b.scheduledDate, b.scheduledTime).getTime();
+
+      switch (sortBy) {
+        case 'soonest':
+          return dateA - dateB;
+        case 'latest':
+          return dateB - dateA;
+        case 'patient':
+          const pA = a.patient ? `${a.patient.firstName} ${a.patient.lastName}` : '';
+          const pB = b.patient ? `${b.patient.firstName} ${b.patient.lastName}` : '';
+          return pA.localeCompare(pB);
+        default:
+          return 0;
+      }
+    });
+
     return list;
   }, [appointments, filterStatus, query, sortBy]);
 
   const initials = (f?: string, l?: string) => ((f?.[0] ?? '') + (l?.[0] ?? '') || 'U').toUpperCase();
-
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/appointments/doctor-appointments');
-      const data = response?.data?.data as Appointment[] | undefined;
-      setAppointments(Array.isArray(data) && data.length ? data : fallbackAppointments);
-    } catch {
-      setAppointments(fallbackAppointments);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div
@@ -221,7 +151,7 @@ export default function DoctorDashboard() {
 
           <div className="flex items-center gap-2">
             <Button
-              onClick={refresh}
+              onClick={() => refetch()}
               disabled={loading}
               className="rounded-xl bg-[var(--brand)]/70 text-gray-900 hover:bg-[var(--brand)]/90"
             >
@@ -291,7 +221,7 @@ export default function DoctorDashboard() {
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by patient, reason, location, or ID…"
+                  placeholder="Search by patient, reason, or ID…"
                   className="h-11 w-full rounded-xl border-black/10 pl-9"
                 />
               </div>
@@ -299,7 +229,7 @@ export default function DoctorDashboard() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-gray-400" />
-                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+                  <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v)}>
                     <SelectTrigger className="h-11 w-[160px] rounded-xl border-black/10">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -356,13 +286,12 @@ export default function DoctorDashboard() {
                         <TableHead className="text-gray-700">Patient</TableHead>
                         <TableHead className="text-gray-700">Date & Time</TableHead>
                         <TableHead className="text-gray-700">Reason</TableHead>
-                        <TableHead className="text-gray-700">Location</TableHead>
                         <TableHead className="text-gray-700">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filtered.map((a, idx) => {
-                        const date = new Date(a.scheduledDate);
+                        const date = getDateTime(a.scheduledDate, a.scheduledTime);
                         return (
                           <TableRow
                             key={a.appointmentId}
@@ -376,15 +305,13 @@ export default function DoctorDashboard() {
                                     background: 'radial-gradient(circle at 30% 30%, var(--brand), #ffffff 70%)',
                                   }}
                                 >
-                                  {initials(a.patient.firstName, a.patient.lastName)}
+                                  {initials(a.patient?.firstName, a.patient?.lastName)}
                                 </span>
                                 <div className="flex flex-col">
                                   <span className="font-medium text-gray-900">
-                                    {a.patient.firstName} {a.patient.lastName}
+                                    {a.patient ? `${a.patient.firstName} ${a.patient.lastName}` : 'Unknown'}
                                   </span>
-                                  {a.patient.phoneNumber && (
-                                    <span className="text-xs text-gray-500">{a.patient.phoneNumber}</span>
-                                  )}
+                                  {/* Phone number not available in Appointment type per se, unless added */}
                                 </div>
                               </div>
                             </TableCell>
@@ -402,10 +329,9 @@ export default function DoctorDashboard() {
                             </TableCell>
 
                             <TableCell className="max-w-[300px] truncate">{a.reason}</TableCell>
-                            <TableCell className="whitespace-nowrap">{a.location ?? '—'}</TableCell>
 
                             <TableCell>
-                              <Badge className={`rounded-full px-2 py-0.5 text-xs ${statusBadge[a.status]}`}>
+                              <Badge className={`rounded-full px-2 py-0.5 text-xs ${statusBadge[a.status] || 'bg-gray-100'}`}>
                                 {a.status}
                               </Badge>
                             </TableCell>
@@ -437,7 +363,7 @@ export default function DoctorDashboard() {
 
             {error && (
               <p className="mt-3 text-sm text-rose-600">
-                {error}
+                {(error as any)?.message || 'An error occurred'}
               </p>
             )}
           </CardContent>

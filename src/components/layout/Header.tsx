@@ -62,10 +62,10 @@ export default function Header() {
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center group">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-600 text-white grid place-items-center mr-2 shadow-md">
-                <span className="font-extrabold text-lg">C</span>
+                <span className="font-extrabold text-lg">N</span>
               </div>
               <span className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                CareConnect
+                Nexus Care
               </span>
             </Link>
           </div>

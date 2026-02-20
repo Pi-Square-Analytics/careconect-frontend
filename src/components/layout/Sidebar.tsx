@@ -17,19 +17,19 @@ export default function Sidebar() {
   const baseLinks =
     user?.userType === 'patient'
       ? [
-          { name: 'Dashboard', href: '/patient' },
-          { name: 'Appointments', href: '/patient/appointments' },
-          { name: 'Messages', href: '/patient/messages' },
-          { name: 'Medical History', href: '/patient/medical-history' },
-          { name: 'Allergies', href: '/patient/allergies' },
-          { name: 'Medications', href: '/patient/medications' },
-          { name: 'Preferences', href: '/patient/preferences' },
-          { name: 'Invoices', href: '/patient/invoices' },
-          { name: 'Profile', href: '/patient/profile' },
-          { name: 'Search Doctors', href: '/patient/search/doctors' },
-        ]
+        { name: 'Dashboard', href: '/patient' },
+        { name: 'Appointments', href: '/patient/appointments' },
+        { name: 'Messages', href: '/patient/messages' },
+        { name: 'Medical History', href: '/patient/medical-history' },
+        { name: 'Allergies', href: '/patient/allergies' },
+        { name: 'Medications', href: '/patient/medications' },
+        { name: 'Preferences', href: '/patient/preferences' },
+        { name: 'Invoices', href: '/patient/invoices' },
+        { name: 'Profile', href: '/patient/profile' },
+        { name: 'Search Doctors', href: '/patient/search/doctors' },
+      ]
       : user?.userType === 'admin'
-      ? [
+        ? [
           { name: 'Dashboard', href: '/admin' },
           { name: 'Users', href: '/admin/users' },
           { name: 'Doctors', href: '/admin/doctors' },
@@ -39,18 +39,18 @@ export default function Sidebar() {
           { name: 'Settings', href: '/admin/settings' },
           { name: 'Profile', href: '/admin/profile' },
         ]
-      : user?.userType === 'doctor'
-      ? [
-          { name: 'Dashboard', href: '/doctor' },
-          { name: 'Schedule', href: '/doctor/schedule' },
-          { name: 'Patients', href: '/doctor/patients' },
-          { name: 'Appointments', href: '/doctor/appointments' },
-          { name: 'Consultations', href: '/doctor/consultations' },
-          { name: 'Invoices', href: '/doctor/invoices' },
-          { name: 'Profile', href: '/doctor/profile' },
-          { name: 'Search Patients', href: '/doctor/search/patients' },
-        ]
-      : [];
+        : user?.userType === 'doctor'
+          ? [
+            { name: 'Dashboard', href: '/doctor' },
+            { name: 'Schedule', href: '/doctor/schedule' },
+            { name: 'Patients', href: '/doctor/patients' },
+            { name: 'Appointments', href: '/doctor/appointments' },
+            { name: 'Consultations', href: '/doctor/consultations' },
+            { name: 'Invoices', href: '/doctor/invoices' },
+            { name: 'Profile', href: '/doctor/profile' },
+            { name: 'Search Patients', href: '/doctor/search/patients' },
+          ]
+          : [];
 
   // attach icons without changing hrefs or names
   const navLinks: NavLink[] = useMemo(
@@ -100,7 +100,7 @@ export default function Sidebar() {
           </div>
           <div className="flex flex-col">
             <h2 className="text-lg font-semibold tracking-tight text-gray-900">
-              CareConnect
+              Nexus Care
             </h2>
             <span className="text-xs text-gray-500">
               {user?.userType ? user.userType.charAt(0).toUpperCase() + user.userType.slice(1) : 'Welcome'}
@@ -187,7 +187,7 @@ export default function Sidebar() {
               style={{ background: 'var(--brand)' }}
               aria-hidden
             />
-  
+
           </div>
         </div>
       </div>

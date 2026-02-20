@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { AuthResponse, LoginCredentials, RegisterCredentials } from '../../types/auth';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -21,7 +21,11 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('accessToken');
-      window.location.href = '/login';
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -54,14 +58,29 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
 };
 
 // Add explicit get function
-export const get = async <T>(url: string): Promise<T> => {
+export const get = async <T>(url: string, config?: any): Promise<T> => {
   try {
-    const response = await api.get<T>(url);
+    const response = await api.get<T>(url, config);
     return response.data;
   } catch (error) {
     const err = error as AxiosError<{ message?: string; error?: string }>;
     throw err.response?.data?.message || err.response?.data?.error || 'Request failed';
   }
+};
+
+export const post = async <T>(url: string, data: any): Promise<T> => {
+  const response = await api.post(url, data);
+  return response.data;
+};
+
+export const put = async <T>(url: string, data: any): Promise<T> => {
+  const response = await api.put(url, data);
+  return response.data;
+};
+
+export const del = async <T>(url: string): Promise<T> => {
+  const response = await api.delete(url);
+  return response.data;
 };
 
 export default api;

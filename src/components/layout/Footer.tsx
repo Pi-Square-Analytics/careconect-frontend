@@ -39,10 +39,10 @@ export default function Footer() {
               <div className="col-span-1 md:col-span-2">
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 rounded-2xl bg-white text-teal-700 font-extrabold grid place-items-center mr-3 shadow-md">
-                    C
+                    N
                   </div>
                   <span className="text-xl font-extrabold tracking-tight drop-shadow-md">
-                    CareConnect
+                    Nexus Care
                   </span>
                 </div>
                 <p className="text-white/95 mb-5 max-w-md leading-relaxed">
@@ -59,11 +59,11 @@ export default function Footer() {
                     +1 (555) 123-4567
                   </a>
                   <a
-                    href="mailto:info@careconnect.com"
+                    href="mailto:info@nexuscare.com"
                     className="flex items-center hover:text-white transition-colors"
                   >
                     <Mail className="w-4 h-4 mr-2" aria-hidden="true" />
-                    info@careconnect.com
+                    info@nexuscare.com
                   </a>
                   <div className="flex items-start">
                     <MapPin className="w-4 h-4 mr-2 mt-0.5" aria-hidden="true" />
@@ -80,8 +80,8 @@ export default function Footer() {
                     { href: "/", label: "Home" },
                     { href: "#services", label: "Services" },
                     { href: "#about", label: "About Us" },
-                    { href: "/auth/login", label: "Patient Portal" },
-                    { href: "/auth/signup", label: "Register" },
+                    { href: "/login", label: "Patient Portal" },
+                    { href: "/register", label: "Register" },
                   ].map((link) => (
                     <li key={link.label}>
                       <Link
@@ -124,7 +124,7 @@ export default function Footer() {
               </div>
 
               <p className="text-sm text-white/85">
-                © {year} <span className="font-semibold">CareConnect</span>. All
+                © {year} <span className="font-semibold">Nexus Care</span>. All
                 rights reserved.
               </p>
             </div>

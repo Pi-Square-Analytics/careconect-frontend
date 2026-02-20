@@ -1,11 +1,10 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-//@ts-nocheck
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import { get } from '@/lib/api/api';
+import { useAdminMetrics } from '@/hooks/useAdmin';
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -16,93 +15,43 @@ import {
   PieChart, Pie, Cell, Tooltip,
 } from 'recharts';
 
-interface Metrics {
-  users: {
-    total: string;
-    patients: string;
-    doctors: string;
-    active: string;
-    pendingVerification: string;
-    inactive: number;
-  };
-  appointments: {
-    total: string;
-    completed: string;
-    scheduled: string;
-  };
-  invoices: {
-    total: string;
-    paid: string;
-    pending: string;
-  };
-  generatedAt: string;
-}
-
 export default function AdminDashboard() {
   const { user } = useAuthHooks();
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data: metrics, isLoading: loading, error, refetch } = useAdminMetrics();
   const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      if (!user) { setError('User not authenticated. Please log in.'); return; }
-      setLoading(true);
-      setError(null);
-      setNotice(null);
-      try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) throw new Error('No access token found. Please log in again.');
-        const data = await get<Metrics>('/admin/metrics/overview');
-        setMetrics(data);
-      } catch (err: any) {
-        console.error('Error fetching metrics:', err);
-        setError(err?.message || 'Failed to fetch metrics');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMetrics();
-  }, [user]);
-
   const refresh = async () => {
-    setLoading(true);
     try {
-      const data = await get<Metrics>('/admin/metrics/overview');
-      setMetrics(data);
+      await refetch();
       setNotice('Dashboard refreshed.');
       setTimeout(() => setNotice(null), 1800);
     } catch (e) {
-      setError('Failed to refresh.');
-      console.log(e)
-    } finally {
-      setLoading(false);
+      console.log(e);
     }
   };
 
   const exportCSV = () => {
     if (!metrics) return;
     const rows = [
-      ['Section','Key','Value'],
-      ['Users','total', metrics.users.total],
-      ['Users','patients', metrics.users.patients],
-      ['Users','doctors', metrics.users.doctors],
-      ['Users','active', metrics.users.active],
-      ['Users','pendingVerification', metrics.users.pendingVerification],
-      ['Users','inactive', String(metrics.users.inactive)],
-      ['Appointments','total', metrics.appointments.total],
-      ['Appointments','completed', metrics.appointments.completed],
-      ['Appointments','scheduled', metrics.appointments.scheduled],
-      ['Invoices','total', metrics.invoices.total],
-      ['Invoices','paid', metrics.invoices.paid],
-      ['Invoices','pending', metrics.invoices.pending],
-      ['Meta','generatedAt', metrics.generatedAt],
+      ['Section', 'Key', 'Value'],
+      ['Users', 'total', metrics.users.total],
+      ['Users', 'patients', metrics.users.patients],
+      ['Users', 'doctors', metrics.users.doctors],
+      ['Users', 'active', metrics.users.active],
+      ['Users', 'pendingVerification', metrics.users.pendingVerification],
+      ['Users', 'inactive', String(metrics.users.inactive)],
+      ['Appointments', 'total', metrics.appointments.total],
+      ['Appointments', 'completed', metrics.appointments.completed],
+      ['Appointments', 'scheduled', metrics.appointments.scheduled],
+      ['Invoices', 'total', metrics.invoices.total],
+      ['Invoices', 'paid', metrics.invoices.paid],
+      ['Invoices', 'pending', metrics.invoices.pending],
+      ['Meta', 'generatedAt', metrics.generatedAt],
     ];
     const csv = rows.map(r => r.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `admin-metrics-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `admin-metrics-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -128,7 +77,7 @@ export default function AdminDashboard() {
     return (
       <div className="p-6">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-6 h-1 w-full rounded-full" style={{ background:'linear-gradient(90deg, transparent 0%, #C4E1E1 22%, #C4E1E1 78%, transparent 100%)' }} />
+          <div className="mb-6 h-1 w-full rounded-full" style={{ background: 'linear-gradient(90deg, transparent 0%, #C4E1E1 22%, #C4E1E1 78%, transparent 100%)' }} />
           <div className="mb-4 h-8 w-48 animate-pulse rounded bg-gray-200/70" />
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {[...Array(3)].map((_, i) => (
@@ -148,7 +97,7 @@ export default function AdminDashboard() {
     return (
       <div className="mx-auto mt-12 max-w-3xl rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-700" role="alert">
         <p className="text-sm font-medium">Error</p>
-        <p className="mt-1 text-sm">{error}</p>
+        <p className="mt-1 text-sm">{(error as any)?.message || 'Failed to fetch metrics'}</p>
       </div>
     );
   }
@@ -161,7 +110,7 @@ export default function AdminDashboard() {
       {/* brand ribbon */}
       <div
         className="mx-auto mb-6 h-1 max-w-6xl rounded-full"
-        style={{ background:'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }}
+        style={{ background: 'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }}
         aria-hidden
       />
 
@@ -288,8 +237,6 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-/* ---------- tiny UI atoms (no logic changes) ---------- */
 
 function StatCard({ icon, title, value, brand = false }: { icon: React.ReactNode; title: string; value: string | number; brand?: boolean }) {
   return (

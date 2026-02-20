@@ -4,52 +4,54 @@
 
 import React, { useMemo } from "react";
 import { useAuth } from "@/lib/api/auth";
+import { useMyAppointments } from "@/hooks/useAppointments";
+import { useMedications } from "@/hooks/usePatient";
+import { format } from "date-fns";
 
 export default function Page() {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { user, logout } = useAuth();
+
+  // Fetch real data
+  const { data: appointments, isLoading: isLoadingAppts } = useMyAppointments();
+  const { data: medications, isLoading: isLoadingMeds } = useMedications();
+
   if (!user) return null;
 
   const BRAND = "#C4E1E1";
 
-  // --- Dummy data (for visuals only) ---
+  // Calculate stats based on real data
   const stats = useMemo(
     () => [
-      { label: "Upcoming", value: 2, sub: "appointments" },
-      { label: "Unread", value: 3, sub: "messages" },
-      { label: "Invoices", value: 1, sub: "due" },
+      {
+        label: "Upcoming",
+        value: appointments?.filter(a => new Date(a.scheduledDate) > new Date()).length || 0,
+        sub: "appointments"
+      },
+      { label: "Unread", value: 3, sub: "messages" }, // Placeholder as no message API yet
+      { label: "Invoices", value: 1, sub: "due" }, // Placeholder
     ],
-    []
+    [appointments]
   );
 
-  const nextAppt = useMemo(
-    () => ({
-      date: "Tue, Sep 9 • 10:30 AM",
-      doctor: "Dr. A. Niyonzima",
-      specialty: "Cardiology",
-      location: "Kigali General Hospital — Room 203",
-      status: "Confirmed",
-      notes: "Arrive 10 min early for intake.",
-    }),
-    []
-  );
+  const nextAppt = useMemo(() => {
+    if (!appointments || appointments.length === 0) return null;
 
-  const meds = useMemo(
-    () => [
-      { name: "Atorvastatin 20mg", schedule: "Nightly", refills: 2 },
-      { name: "Metformin 500mg", schedule: "Morning & Evening", refills: 1 },
-    ],
-    []
-  );
+    // Find next upcoming appointment
+    const upcoming = appointments
+      .filter(a => new Date(a.scheduledDate) > new Date())
+      .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0];
 
-  const activity = useMemo(
-    () => [
-      { time: "Today 09:12", text: "New lab results uploaded by Dr. K." },
-      { time: "Yesterday 16:40", text: "Invoice #INV-2041 marked as paid." },
-      { time: "Aug 05", text: "Appointment rescheduled to Sep 9." },
-    ],
-    []
-  );
+    if (!upcoming) return null;
+
+    return {
+      date: `${format(new Date(upcoming.scheduledDate), "EEE, MMM d")} • ${upcoming.scheduledTime}`,
+      doctor: upcoming.doctor ? `Dr. ${upcoming.doctor.lastName}` : "Doctor",
+      specialty: upcoming.doctor?.specialty || "General Practice",
+      location: "Kigali General Hospital", // Placeholder location
+      status: upcoming.status,
+      notes: upcoming.notes || "No additional notes.",
+    };
+  }, [appointments]);
 
   return (
     <div
@@ -130,62 +132,83 @@ export default function Page() {
         <div className="lg:col-span-2 rounded-2xl border border-black/5 bg-white/80 p-6 shadow-xl backdrop-blur">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold tracking-tight">Next appointment</h2>
-            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 ring-1 ring-green-200">
-              {nextAppt.status}
-            </span>
+            {nextAppt && (
+              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 ring-1 ring-green-200">
+                {nextAppt.status}
+              </span>
+            )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-black/5 bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500">Date & time</p>
-              <p className="mt-1 font-medium text-gray-900">{nextAppt.date}</p>
-            </div>
-            <div className="rounded-xl border border-black/5 bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500">Doctor</p>
-              <p className="mt-1 font-medium text-gray-900">
-                {nextAppt.doctor} • <span className="text-gray-600">{nextAppt.specialty}</span>
-              </p>
-            </div>
-            <div className="sm:col-span-2 rounded-xl border border-black/5 bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500">Location</p>
-              <p className="mt-1 font-medium text-gray-900">{nextAppt.location}</p>
-              <p className="mt-2 text-sm text-gray-600">{nextAppt.notes}</p>
-            </div>
-          </div>
+          {isLoadingAppts ? (
+            <p>Loading appointments...</p>
+          ) : nextAppt ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-black/5 bg-white/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Date & time</p>
+                  <p className="mt-1 font-medium text-gray-900">{nextAppt.date}</p>
+                </div>
+                <div className="rounded-xl border border-black/5 bg-white/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Doctor</p>
+                  <p className="mt-1 font-medium text-gray-900">
+                    {nextAppt.doctor} • <span className="text-gray-600">{nextAppt.specialty}</span>
+                  </p>
+                </div>
+                <div className="sm:col-span-2 rounded-xl border border-black/5 bg-white/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Location</p>
+                  <p className="mt-1 font-medium text-gray-900">{nextAppt.location}</p>
+                  <p className="mt-2 text-sm text-gray-600">{nextAppt.notes}</p>
+                </div>
+              </div>
 
-          {/* Quick actions */}
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button className="rounded-lg bg-[var(--brand)]/70 px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-[var(--brand)]/60 transition hover:bg-[var(--brand)]/90">
-              Reschedule
-            </button>
-            <button className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">
-              Message doctor
-            </button>
-            <button className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">
-              View details
-            </button>
-          </div>
+              {/* Quick actions */}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button className="rounded-lg bg-[var(--brand)]/70 px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-[var(--brand)]/60 transition hover:bg-[var(--brand)]/90">
+                  Reschedule
+                </button>
+                <button className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">
+                  Message doctor
+                </button>
+                <button className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">
+                  View details
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="py-8 text-center text-gray-500">
+              <p>No upcoming appointments.</p>
+              <button className="mt-4 rounded-lg bg-[var(--brand)]/70 px-4 py-2 text-sm font-medium text-gray-900 ring-1 ring-[var(--brand)]/60">
+                Book an Appointment
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Medications */}
         <div className="rounded-2xl border border-black/5 bg-white/80 p-6 shadow-xl backdrop-blur">
           <h2 className="text-lg font-semibold tracking-tight">Medications</h2>
-          <ul className="mt-3 space-y-3">
-            {meds.map((m) => (
-              <li
-                key={m.name}
-                className="flex items-start justify-between rounded-xl border border-black/5 bg-white/70 p-3"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{m.name}</p>
-                  <p className="text-sm text-gray-600">{m.schedule}</p>
-                </div>
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-black/5">
-                  Refills: {m.refills}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {isLoadingMeds ? (
+            <p className="mt-3 text-sm text-gray-500">Loading medications...</p>
+          ) : medications && medications.length > 0 ? (
+            <ul className="mt-3 space-y-3">
+              {medications.map((m) => (
+                <li
+                  key={m.medicationId}
+                  className="flex items-start justify-between rounded-xl border border-black/5 bg-white/70 p-3"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">{m.medicationName}</p>
+                    <p className="text-sm text-gray-600">{m.frequency}</p>
+                  </div>
+                  {/* <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 ring-1 ring-black/5">
+                    Refills: ?
+                  </span> */}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-gray-500">No active medications.</p>
+          )}
           <button className="mt-4 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50">
             Manage medications
           </button>
@@ -195,16 +218,12 @@ export default function Page() {
         <div className="lg:col-span-2 grid grid-cols-1 gap-6">
           <div className="rounded-2xl border border-black/5 bg-white/80 p-6 shadow-xl backdrop-blur">
             <h2 className="text-lg font-semibold tracking-tight">Recent activity</h2>
+            {/* Placeholder activity as before */}
             <ul className="mt-3 space-y-3">
-              {activity.map((a, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="mt-1 h-2.5 w-2.5 rounded-full" style={{ background: "var(--brand)" }} />
-                  <div>
-                    <p className="text-sm text-gray-800">{a.text}</p>
-                    <p className="text-xs text-gray-500">{a.time}</p>
-                  </div>
-                </li>
-              ))}
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2.5 w-2.5 rounded-full bg-gray-300" />
+                <p className="text-sm text-gray-500">No recent activity.</p>
+              </li>
             </ul>
           </div>
 
