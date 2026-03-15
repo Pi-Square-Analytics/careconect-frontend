@@ -1,27 +1,32 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-//@ts-nocheck
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
 import api from '@/lib/api/api';
-import { Bell, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Bell, MessageSquare, ShieldCheck, AlertCircle } from 'lucide-react';
+
+interface Preferences {
+  preferredCommunicationMethod: string;
+  appointmentReminderTiming: number;
+}
 
 export default function PreferencesPage() {
   const { user } = useAuthHooks();
-  const [preferences, setPreferences] = useState<any>(null);
+  const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPreferences = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const response = await api.get('/patient/preferences');
-        setPreferences(response?.data?.data ?? null);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to fetch preferences');
+        const response: any = await api.get('/patient/preferences');
+        // Our api.get returns response.data. If the backend wraps it again:
+        const data = response?.data || response || null;
+        setPreferences(data as Preferences);
+      } catch (err: unknown) {
+        console.error('Fetch preferences error:', err);
       } finally {
         setLoading(false);
       }
@@ -29,7 +34,19 @@ export default function PreferencesPage() {
     fetchPreferences();
   }, []);
 
-  if (!user) return null;
+  if (!user || user.userType !== 'patient') {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+        <div className="rounded-full bg-rose-50 p-3 ring-8 ring-rose-50/50">
+          <AlertCircle className="h-8 w-8 text-rose-500" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-900">Access Denied</h3>
+          <p className="text-gray-500">Please log in as a patient to manage your preferences.</p>
+        </div>
+      </div>
+    );
+  }
 
   const BRAND = '#C4E1E1';
   const method = preferences?.preferredCommunicationMethod
@@ -45,26 +62,22 @@ export default function PreferencesPage() {
   return (
     <div
       className="p-6"
-  
-      style={{ ['--brand']: BRAND }}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
-      {/* brand ribbon */}
       <div
         className="mx-auto mb-6 h-1 max-w-5xl rounded-full"
-        style={{ background:'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }}
+        style={{ background: 'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }}
         aria-hidden
       />
 
       <div className="mx-auto max-w-5xl space-y-6">
-        {/* Header */}
         <header>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Preferences</h1>
           <p className="mt-1 text-gray-600">
-            Manage your preferences, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+            Manage your preferences, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
           </p>
         </header>
 
-        {/* Alerts */}
         {loading && (
           <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sky-800">Loading…</div>
         )}
@@ -72,7 +85,6 @@ export default function PreferencesPage() {
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">{error}</div>
         )}
 
-        {/* Summary card */}
         <section className="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-xl backdrop-blur">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Your Current Settings</h2>
@@ -89,7 +101,7 @@ export default function PreferencesPage() {
             </div>
           ) : !preferences ? (
             <div className="rounded-xl border border-black/5 bg-white/70 p-8 text-center text-gray-600">
-              No preferences found.
+              No preferences found. Default settings are active.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -116,11 +128,10 @@ export default function PreferencesPage() {
           )}
         </section>
 
-        {/* Preview / future form (disabled to avoid changing functionality) */}
         <section className="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-xl backdrop-blur">
           <div className="mb-3">
             <h3 className="text-base font-semibold text-gray-900">Update Preferences</h3>
-            <p className="text-xs text-gray-500">Form is read-only for now. Wire it to <code className="rounded bg-gray-100 px-1 py-0.5">PUT /patient/preferences</code> later.</p>
+            <p className="text-xs text-gray-500">Form is read-only for now. It will be wired to the API in the next update.</p>
           </div>
 
           <form className="grid grid-cols-1 gap-4 md:grid-cols-2">

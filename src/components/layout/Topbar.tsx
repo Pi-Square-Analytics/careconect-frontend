@@ -66,7 +66,7 @@ export default function Topbar() {
                 <span className="text-sm text-gray-700">
                   Welcome,&nbsp;
                   <span className="font-medium text-gray-900">
-                    {user.profile.firstName} {user.profile.lastName}
+                    {user.profile?.firstName} {user.profile?.lastName}
                   </span>
                 </span>
                 {user.userType && (
@@ -80,7 +80,7 @@ export default function Topbar() {
               <div
                 className="grid h-10 w-10 select-none place-items-center rounded-full bg-white text-sm font-semibold text-gray-800 ring-1 ring-black/5 shadow-sm"
                 aria-label="User avatar"
-                title={`${user.profile.firstName} ${user.profile.lastName}`}
+                title={`${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`}
               >
                 {initials}
               </div>

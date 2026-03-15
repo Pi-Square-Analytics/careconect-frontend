@@ -1,7 +1,4 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-//@ts-nocheck
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
@@ -22,7 +19,7 @@ export default function MedicalHistoryPage() {
   const { user } = useAuthHooks();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // UI-only state (doesn't change your backend behavior)
   const [q, setQ] = useState('');
@@ -36,8 +33,14 @@ export default function MedicalHistoryPage() {
       try {
         const response = await api.get('/patient/medical-history');
         setHistory(Array.isArray(response?.data?.data) ? response.data.data : []);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to fetch medical history');
+      } catch (err: unknown) {
+        let msg = 'Failed to fetch medical history';
+        if (typeof err === 'string') msg = err;
+        else if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response: { data?: { message?: string } } };
+          if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+        } else if (err instanceof Error) msg = err.message;
+        setError(msg);
         setHistory([]);
       } finally {
         setLoading(false);
@@ -45,11 +48,6 @@ export default function MedicalHistoryPage() {
     };
     fetchHistory();
   }, []);
-
-  if (!user) return null;
-
-  const BRAND = '#C4E1E1';
-  const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '—');
 
   const filtered = useMemo(() => {
     let list = [...history];
@@ -79,12 +77,17 @@ export default function MedicalHistoryPage() {
     return list;
   }, [history, q, sortBy, statusFilter]);
 
+  if (!user) return null;
+
+  const BRAND = '#C4E1E1';
+  const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '—');
+
   const statusChip = (s?: string) => {
     const val = (s ?? '').toLowerCase();
     const map: Record<string, string> = {
-      active:   'bg-emerald-50 text-emerald-700 ring-emerald-200',
+      active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
       resolved: 'bg-gray-100 text-gray-700 ring-gray-200',
-      ongoing:  'bg-amber-50 text-amber-700 ring-amber-200',
+      ongoing: 'bg-amber-50 text-amber-700 ring-amber-200',
     };
     const cls = map[val] ?? 'bg-sky-50 text-sky-700 ring-sky-200';
     return <span className={`rounded-full px-2 py-0.5 text-xs ring-1 capitalize ${cls}`}>{s ?? 'unknown'}</span>;
@@ -94,8 +97,8 @@ export default function MedicalHistoryPage() {
     const v = (sev ?? '').toLowerCase();
     const c =
       v === 'severe' ? 'bg-rose-500' :
-      v === 'moderate' ? 'bg-amber-500' :
-      v === 'mild' ? 'bg-emerald-500' : 'bg-gray-300';
+        v === 'moderate' ? 'bg-amber-500' :
+          v === 'mild' ? 'bg-emerald-500' : 'bg-gray-300';
     return (
       <span className="inline-flex items-center gap-1 text-xs text-gray-600">
         <span className={`h-2 w-2 rounded-full ${c}`} /> {sev ?? '—'}
@@ -106,8 +109,7 @@ export default function MedicalHistoryPage() {
   return (
     <div
       className="p-6"
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* Brand ribbon */}
       <div
@@ -121,7 +123,7 @@ export default function MedicalHistoryPage() {
         <header>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Medical History</h1>
           <p className="mt-1 text-gray-600">
-            Manage your medical history, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+            Manage your medical history, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
           </p>
         </header>
 
@@ -148,7 +150,7 @@ export default function MedicalHistoryPage() {
             <div className="flex flex-wrap items-center gap-2">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'resolved' | 'ongoing')}
                 className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
               >
                 <option value="all">All status</option>
@@ -159,7 +161,7 @@ export default function MedicalHistoryPage() {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'name')}
                 className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
               >
                 <option value="newest">Newest first</option>

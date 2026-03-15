@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// app/admin/doctors/page.tsx
 // app/admin/doctors/page.tsx
 'use client';
 
@@ -119,11 +119,13 @@ export default function DoctorsPage() {
 
         setDoctors(Array.isArray(fetchedDoctors) ? fetchedDoctors : []);
         setPagination(fetchedPagination);
-      } catch (err: any) {
+      } catch (err: unknown) {
         let msg = 'Failed to fetch doctors';
         if (typeof err === 'string') msg = err;
-        else if (err?.response?.data?.message) msg = err.response.data.message;
-        else if (err?.message) msg = err.message;
+        else if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response: { data?: { message?: string } } };
+          if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+        } else if (err instanceof Error) msg = err.message;
         setError(msg);
         setDoctors([]);
       } finally {
@@ -176,11 +178,13 @@ export default function DoctorsPage() {
         consultationFee: 0,
         isActive: true,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       let msg = 'Failed to create doctor';
       if (typeof err === 'string') msg = err;
-      else if (err?.response?.data?.message) msg = err.response.data.message;
-      else if (err?.message) msg = err.message;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string } } };
+        if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally {
       setLoading(false);
@@ -195,11 +199,13 @@ export default function DoctorsPage() {
       await refetchDoctors();
       setSelectedDoctorId(null);
       setUpdateDoctor({});
-    } catch (err: any) {
+    } catch (err: unknown) {
       let msg = 'Failed to update doctor';
       if (typeof err === 'string') msg = err;
-      else if (err?.response?.data?.message) msg = err.response.data.message;
-      else if (err?.message) msg = err.message;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string } } };
+        if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally {
       setLoading(false);
@@ -214,11 +220,13 @@ export default function DoctorsPage() {
       await refetchDoctors();
       setSelectedDoctorId(null);
       setUpdateStatus({ isActive: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
       let msg = 'Failed to update status';
       if (typeof err === 'string') msg = err;
-      else if (err?.response?.data?.message) msg = err.response.data.message;
-      else if (err?.message) msg = err.message;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string } } };
+        if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally {
       setLoading(false);
@@ -232,24 +240,26 @@ export default function DoctorsPage() {
     try {
       await api.delete(`/doctors/${doctorId}`);
       await refetchDoctors();
-    } catch (err: any) {
+    } catch (err: unknown) {
       let msg = 'Failed to delete doctor';
       if (typeof err === 'string') msg = err;
-      else if (err?.response?.data?.message) msg = err.response.data.message;
-      else if (err?.message) msg = err.message;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string } } };
+        if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (
+  const handleInputChange = <T,>(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    setState: React.Dispatch<React.SetStateAction<any>>,
-    state: any
+    setState: React.Dispatch<React.SetStateAction<T>>,
+    state: T
   ) => {
     const { name, value } = e.target;
-    let processed: any = value;
+    let processed: string | number | boolean = value;
     if (name === 'isActive') processed = value === 'true';
     else if (name === 'consultationFee') processed = parseFloat(value) || 0;
     setState({ ...state, [name]: processed });
@@ -320,7 +330,7 @@ export default function DoctorsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `doctors-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `doctors-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -333,7 +343,7 @@ export default function DoctorsPage() {
   const initials = (f?: string, l?: string) => ((f?.[0] ?? '') + (l?.[0] ?? '') || 'D').toUpperCase();
 
   return (
-    <div className="p-6" style={{ ['--brand' as any]: BRAND } as React.CSSProperties}>
+    <div className="p-6" style={{ '--brand': BRAND } as React.CSSProperties}>
       {/* brand ribbon */}
       <div
         className="mx-auto mb-6 h-1 max-w-6xl rounded-full"
@@ -347,7 +357,7 @@ export default function DoctorsPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Doctors</h1>
             <p className="mt-1 text-gray-600">
-              Manage doctors, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              Manage doctors, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
             {pagination?.total && (
               <p className="mt-2 text-xs text-gray-500">Total doctors: {pagination.total}</p>
@@ -419,7 +429,7 @@ export default function DoctorsPage() {
               <span className="text-sm font-medium text-gray-700">Sort</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'newest' | 'name' | 'specialty' | 'feeAsc' | 'feeDesc')}
                 className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
               >
                 <option value="newest">Newest</option>
@@ -456,7 +466,7 @@ export default function DoctorsPage() {
                     <input
                       type={f.type}
                       name={f.name}
-                      value={(newDoctor as any)[f.name]}
+                      value={newDoctor[f.name as keyof typeof newDoctor] as string}
                       onChange={(e) => handleInputChange(e, setNewDoctor, newDoctor)}
                       className="mt-1 h-11 w-full rounded-xl border border-black/10 bg-white/70 px-3 outline-none focus:ring-2 focus:ring-[var(--brand)]"
                       required

@@ -1,7 +1,6 @@
 import api from './api';
 import {
     User,
-    UserProfile,
     UpdateUserProfileRequest,
     CreateUserRequest,
     UpdateUserStatusRequest

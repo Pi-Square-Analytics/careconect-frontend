@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as UserAPI from '../lib/api/users';
-import { UpdateUserProfileRequest, CreateUserRequest, UpdateUserStatusRequest } from '../types/user';
+import { UpdateUserStatusRequest } from '../types/user';
 
 export const USER_KEYS = {
     all: ['users'] as const,
     profile: () => [...USER_KEYS.all, 'profile'] as const,
     completeness: () => [...USER_KEYS.all, 'completeness'] as const,
-    search: (query: any) => [...USER_KEYS.all, 'search', query] as const,
-    list: (query: any) => [...USER_KEYS.all, 'list', query] as const,
+    search: (query: unknown) => [...USER_KEYS.all, 'search', query] as const,
+    list: (query: unknown) => [...USER_KEYS.all, 'list', query] as const,
     byId: (userId: string) => [...USER_KEYS.all, userId] as const,
 };
 
@@ -74,7 +74,7 @@ export function useUpdateUserStatus() {
     return useMutation({
         mutationFn: ({ userId, data }: { userId: string; data: UpdateUserStatusRequest }) =>
             UserAPI.updateUserStatus(userId, data),
-        onSuccess: (_, variables) => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: USER_KEYS.byId(variables.userId) });
             queryClient.invalidateQueries({ queryKey: USER_KEYS.list({}) }); // Invalidate list broadly
         },

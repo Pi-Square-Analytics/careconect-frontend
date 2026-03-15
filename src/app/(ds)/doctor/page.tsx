@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -50,11 +48,9 @@ export default function DoctorDashboard() {
   const [filterStatus, setFilterStatus] = useState<'all' | string>('all');
   const [sortBy, setSortBy] = useState<'soonest' | 'latest' | 'patient'>('soonest');
 
-  if (!user) return null;
-
   // derive metrics
-  const now = new Date();
   const kpis = useMemo(() => {
+    const now = new Date();
     const upcoming = appointments.filter(a => {
       const dt = getDateTime(a.scheduledDate, a.scheduledTime);
       return dt.getTime() >= now.getTime() && a.status === 'scheduled';
@@ -62,11 +58,11 @@ export default function DoctorDashboard() {
 
     const completedToday = appointments.filter(a => {
       const d = getDateTime(a.scheduledDate, a.scheduledTime);
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const apptDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       return (
         a.status === 'completed' &&
-        d.getFullYear() === now.getFullYear() &&
-        d.getMonth() === now.getMonth() &&
-        d.getDate() === now.getDate()
+        apptDate.getTime() === today.getTime()
       );
     }).length;
 
@@ -74,7 +70,7 @@ export default function DoctorDashboard() {
     const uniquePatients = new Set(appointments.map(a => a.patientId)).size;
 
     return { upcoming, completedToday, cancelled, totalPatients: uniquePatients };
-  }, [appointments]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointments]);
 
   // search/filter/sort
   const filtered = useMemo(() => {
@@ -115,12 +111,14 @@ export default function DoctorDashboard() {
     return list;
   }, [appointments, filterStatus, query, sortBy]);
 
+  if (!user) return null;
+
   const initials = (f?: string, l?: string) => ((f?.[0] ?? '') + (l?.[0] ?? '') || 'U').toUpperCase();
 
   return (
     <div
       className="p-6"
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div
@@ -145,7 +143,7 @@ export default function DoctorDashboard() {
               Doctor Dashboard
             </h1>
             <p className="mt-1 text-gray-600">
-              Welcome, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              Welcome, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
           </div>
 
@@ -242,7 +240,7 @@ export default function DoctorDashboard() {
                   </Select>
                 </div>
 
-                <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'soonest' | 'latest' | 'patient')}>
                   <SelectTrigger className="h-11 w-[160px] rounded-xl border-black/10">
                     <SelectValue placeholder="Sort" />
                   </SelectTrigger>
@@ -363,7 +361,7 @@ export default function DoctorDashboard() {
 
             {error && (
               <p className="mt-3 text-sm text-rose-600">
-                {(error as any)?.message || 'An error occurred'}
+                {error instanceof Error ? error.message : String(error)}
               </p>
             )}
           </CardContent>

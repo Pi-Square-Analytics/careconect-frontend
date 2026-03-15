@@ -1,13 +1,10 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-//@ts-nocheck
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import  api  from '@/lib/api/api';
-import { Download, FileText, RefreshCcw, Search } from 'lucide-react';
+import api from '@/lib/api/api';
+import { Download, FileText, RefreshCcw, Search, CreditCard } from 'lucide-react';
+import { initiateTaagPayment } from '@/lib/api/taag';
 
 type Invoice = {
   invoiceId: string;
@@ -19,6 +16,7 @@ type Invoice = {
   paidAt?: string;       // ISO
   pdfUrl?: string;
   notes?: string;
+  planId?: string;       // For Taag payment
 };
 
 export default function InvoicesPage() {
@@ -26,9 +24,8 @@ export default function InvoicesPage() {
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // UI-only controls (client-side only; does not change your backend)
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<'all' | 'paid' | 'unpaid' | 'overdue'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'amount_desc' | 'amount_asc'>('newest');
@@ -42,9 +39,11 @@ export default function InvoicesPage() {
       setError(null);
       try {
         const res = await api.get(`/invoice/invoices/patient/${user.userId}`);
-        setInvoices(Array.isArray(res?.data?.data) ? res.data.data : []);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to fetch invoices');
+        const data = res.data?.data || res.data || [];
+        setInvoices(Array.isArray(data) ? data : []);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch invoices';
+        setError(message);
         setInvoices([]);
       } finally {
         setLoading(false);
@@ -53,28 +52,29 @@ export default function InvoicesPage() {
     fetchInvoices();
   }, [user]);
 
-  if (!user) return null;
-
-  // helpers
-  const fmtMoney = (amt: any, ccy?: string) => {
+  // helpers (Must be above any early return if used in hooks, or just kept in the component scope)
+  const fmtMoney = (amt: number | string, ccy?: string) => {
     const n = Number(amt);
     if (!isFinite(n)) return `${amt ?? '—'}`;
     return new Intl.NumberFormat(undefined, { style: 'currency', currency: ccy || 'USD', maximumFractionDigits: 2 }).format(n);
   };
+  
   const fmtDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '—');
+  
   const deriveStatus = (inv: Invoice) => {
     const s = (inv.status ?? '').toLowerCase();
-    if (s) return s as 'paid'|'unpaid'|'overdue'|string;
+    if (s === 'paid') return 'paid';
     if (inv.paidAt) return 'paid';
     const due = inv.dueDate ? new Date(inv.dueDate) : null;
     if (due && due.getTime() < Date.now()) return 'overdue';
     return 'unpaid';
   };
+
   const statusBadge = (s: string) => {
     const base = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1';
     const map: Record<string, string> = {
-      paid:    `${base} bg-emerald-50 text-emerald-700 ring-emerald-200`,
-      unpaid:  `${base} bg-amber-50 text-amber-700 ring-amber-200`,
+      paid: `${base} bg-emerald-50 text-emerald-700 ring-emerald-200`,
+      unpaid: `${base} bg-amber-50 text-amber-700 ring-amber-200`,
       overdue: `${base} bg-rose-50 text-rose-700 ring-rose-200`,
     };
     return <span className={map[s] ?? `${base} bg-gray-100 text-gray-700 ring-gray-200`}>{s}</span>;
@@ -94,27 +94,43 @@ export default function InvoicesPage() {
     }
     switch (sortBy) {
       case 'newest':
-        rows.sort((a,b) => +(new Date(b.createdAt ?? b.dueDate ?? 0)) - +(new Date(a.createdAt ?? a.dueDate ?? 0)));
+        rows.sort((a, b) => +(new Date(b.createdAt ?? b.dueDate ?? 0)) - +(new Date(a.createdAt ?? a.dueDate ?? 0)));
         break;
       case 'oldest':
-        rows.sort((a,b) => +(new Date(a.createdAt ?? a.dueDate ?? 0)) - +(new Date(b.createdAt ?? b.dueDate ?? 0)));
+        rows.sort((a, b) => +(new Date(a.createdAt ?? a.dueDate ?? 0)) - +(new Date(b.createdAt ?? b.dueDate ?? 0)));
         break;
       case 'amount_desc':
-        rows.sort((a,b) => Number(b.totalAmount) - Number(a.totalAmount));
+        rows.sort((a, b) => Number(b.totalAmount) - Number(a.totalAmount));
         break;
       case 'amount_asc':
-        rows.sort((a,b) => Number(a.totalAmount) - Number(b.totalAmount));
+        rows.sort((a, b) => Number(a.totalAmount) - Number(b.totalAmount));
         break;
     }
     return rows;
   }, [invoices, q, status, sortBy]);
+
+  // early return AFTER hooks
+  if (!user || user.userType !== 'patient') {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+        <div className="rounded-full bg-rose-50 p-3 ring-8 ring-rose-50/50">
+          <FileText className="h-8 w-8 text-rose-500" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-900">Access Denied</h3>
+          <p className="text-gray-500">Please log in as a patient to view your invoices.</p>
+        </div>
+      </div>
+    );
+  }
 
   const refresh = async () => {
     if (!user) return;
     setLoading(true);
     try {
       const res = await api.get(`/invoice/invoices/patient/${user.userId}`);
-      setInvoices(Array.isArray(res?.data?.data) ? res.data.data : []);
+      const data = res.data?.data || res.data || [];
+      setInvoices(Array.isArray(data) ? data : []);
     } catch {
       setError('Failed to refresh invoices');
     } finally {
@@ -122,11 +138,26 @@ export default function InvoicesPage() {
     }
   };
 
+  const handlePay = (inv: Invoice) => {
+    const planId = inv.planId || process.env.NEXT_PUBLIC_TAAG_PLAN_ID;
+    
+    if (!planId) {
+      console.error('Taag Payment Error: No planId found on invoice and NEXT_PUBLIC_TAAG_PLAN_ID is not set in environment.');
+      alert('Payment configuration is missing. Please contact support.');
+      return;
+    }
+
+    initiateTaagPayment(planId, {
+      email: user.email,
+      firstname: user.profile?.firstName,
+      lastname: user.profile?.lastName,
+    });
+  };
+
   return (
     <div
       className="p-6"
-      // @ts-ignore
-      style={{ ['--brand']: BRAND }}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div
@@ -141,7 +172,7 @@ export default function InvoicesPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Invoices</h1>
             <p className="mt-1 text-gray-600">
-              View your invoices, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              View your invoices, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -177,7 +208,7 @@ export default function InvoicesPage() {
             </div>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              onChange={(e) => setStatus(e.target.value as 'all' | 'paid' | 'unpaid' | 'overdue')}
               className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
             >
               <option value="all">All status</option>
@@ -187,7 +218,7 @@ export default function InvoicesPage() {
             </select>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'amount_desc' | 'amount_asc')}
               className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
             >
               <option value="newest">Newest first</option>
@@ -238,12 +269,14 @@ export default function InvoicesPage() {
 
                   {!loading && filtered.map((inv, idx) => {
                     const s = deriveStatus(inv);
+                    const isUnpaid = s !== 'paid';
+                    
                     return (
                       <tr key={inv.invoiceId} className={`${idx % 2 ? 'bg-white' : 'bg-gray-50/30'}`}>
                         <Td>
                           <div className="flex items-center gap-2">
                             <span className="rounded-lg bg-[var(--brand)]/40 px-2 py-0.5 text-xs text-gray-800 ring-1 ring-[var(--brand)]/60">
-                              #{inv.invoiceId?.slice(0,8)}…
+                              #{inv.invoiceId?.slice(0, 8)}…
                             </span>
                             {inv.notes && <span className="truncate text-xs text-gray-500 max-w-[12rem]">{inv.notes}</span>}
                           </div>
@@ -258,6 +291,7 @@ export default function InvoicesPage() {
                               <a
                                 href={inv.pdfUrl}
                                 target="_blank"
+                                rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
                               >
                                 <FileText className="h-4 w-4" /> View
@@ -272,14 +306,24 @@ export default function InvoicesPage() {
                                 <FileText className="h-4 w-4" /> View
                               </button>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => alert('Export (demo)')}
-                              className="inline-flex items-center gap-1 rounded-lg bg-[var(--brand)] px-2.5 py-1.5 text-xs font-medium text-gray-900 ring-1 ring-black/10 hover:bg-[#b3d8d8]"
-                            >
-                              <Download className="h-4 w-4" /> Export
-                            </button>
-                            {/* Payment UI can be wired to POST /invoice/invoices/:invoiceId/pay later */}
+                            
+                            {isUnpaid ? (
+                              <button
+                                type="button"
+                                onClick={() => handlePay(inv)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-[var(--brand)] px-2.5 py-1.5 text-xs font-semibold text-gray-900 ring-1 ring-black/10 hover:bg-[#b3d8d8] shadow-sm"
+                              >
+                                <CreditCard className="h-4 w-4" /> Pay Now
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => alert('Exporting invoice...')}
+                                className="inline-flex items-center gap-1 rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                              >
+                                <Download className="h-4 w-4" /> Export
+                              </button>
+                            )}
                           </div>
                         </Td>
                       </tr>
@@ -296,13 +340,13 @@ export default function InvoicesPage() {
 }
 
 /* tiny table atoms */
-function Th({ children, className = '' }: any) {
+function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-600 ${className}`}>
       {children}
     </th>
   );
 }
-function Td({ children, className = '' }: any) {
+function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-4 py-3 align-middle text-sm text-gray-800 ${className}`}>{children}</td>;
 }

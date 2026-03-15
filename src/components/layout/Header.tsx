@@ -125,6 +125,7 @@ export default function Header() {
           <div className="md:hidden">
             <Button
               aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMenuOpen}
               variant="ghost"
               size="icon"
               onClick={() => setIsMenuOpen((v) => !v)}
@@ -150,7 +151,6 @@ export default function Header() {
             className="min-h-0"
             role="menu"
             aria-label="Mobile"
-            aria-expanded={isMenuOpen}
           >
             <div className="border-t border-teal-900/5 dark:border-white/10 py-3 space-y-1">
               {NAV_ITEMS.map((item) => {

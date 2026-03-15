@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -22,7 +21,11 @@ interface Profile {
     dateOfBirth?: string;
     gender?: string;
     address?: string;
+    specialty?: string;
+    bio?: string;
+    consultationFee?: number;
   };
+  medicalLicenseNumber?: string;
 }
 
 interface UpdateProfile {
@@ -32,8 +35,12 @@ interface UpdateProfile {
     dateOfBirth?: string;
     gender?: string;
     address?: string;
+    specialty?: string;
+    bio?: string;
+    consultationFee?: number;
   };
   phoneNumber?: string;
+  medicalLicenseNumber?: string;
 }
 
 const BRAND = '#C4E1E1';
@@ -75,26 +82,35 @@ export default function ProfilePage() {
           }
         }
 
-        if (fetchedProfile) {
+        if (fetchedProfile && fetchedProfile.profile) {
           setProfile(fetchedProfile);
           setUpdateData({
             profile: {
-              firstName: fetchedProfile.profile?.firstName || '',
-              lastName: fetchedProfile.profile?.lastName || '',
-              dateOfBirth: fetchedProfile.profile?.dateOfBirth || '',
-              gender: fetchedProfile.profile?.gender || '',
-              address: fetchedProfile.profile?.address || '',
+              firstName: fetchedProfile.profile.firstName || '',
+              lastName: fetchedProfile.profile.lastName || '',
+              specialty: fetchedProfile.profile.specialty || '',
+              bio: fetchedProfile.profile.bio || '',
+              consultationFee: fetchedProfile.profile.consultationFee ?? 0,
             },
-            phoneNumber: fetchedProfile.phoneNumber || '',
+            medicalLicenseNumber: fetchedProfile.medicalLicenseNumber || '',
           });
+        } else if (fetchedProfile) {
+          // Profile exists but nested profile object is missing
+          setProfile(fetchedProfile);
+          setUpdateData(prev => ({
+            ...prev,
+            medicalLicenseNumber: fetchedProfile.medicalLicenseNumber || '',
+          }));
+          setError('Profile details are missing.');
         } else {
           setError('Invalid profile data received');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         let errorMessage = 'Failed to fetch profile';
+        const errorData = err as { response?: { data?: { message?: string } }; message?: string };
         if (typeof err === 'string') errorMessage = err;
-        else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-        else if (err?.message) errorMessage = err.message;
+        else if (errorData?.response?.data?.message) errorMessage = errorData.response.data.message;
+        else if (errorData?.message) errorMessage = errorData.message;
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -127,11 +143,12 @@ export default function ProfilePage() {
         setIsEditing(false);
         setTimeout(() => setSuccess(null), 3000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       let errorMessage = 'Failed to update profile';
+      const errorData = err as { response?: { data?: { message?: string } }; message?: string };
       if (typeof err === 'string') errorMessage = err;
-      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-      else if (err?.message) errorMessage = err.message;
+      else if (errorData?.response?.data?.message) errorMessage = errorData.response.data.message;
+      else if (errorData?.message) errorMessage = errorData.message;
       setError(errorMessage);
     } finally {
       setUpdating(false);
@@ -144,6 +161,8 @@ export default function ProfilePage() {
     const { name, value } = e.target;
     if (name === 'phoneNumber') {
       setUpdateData({ ...updateData, phoneNumber: value });
+    } else if (name === 'medicalLicenseNumber') {
+      setUpdateData({ ...updateData, medicalLicenseNumber: value });
     } else {
       setUpdateData({
         ...updateData,
@@ -164,8 +183,12 @@ export default function ProfilePage() {
           dateOfBirth: profile.profile?.dateOfBirth || '',
           gender: profile.profile?.gender || '',
           address: profile.profile?.address || '',
+          specialty: profile.profile?.specialty || '',
+          bio: profile.profile?.bio || '',
+          consultationFee: profile.profile?.consultationFee ?? 0,
         },
         phoneNumber: profile.phoneNumber || '',
+        medicalLicenseNumber: profile.medicalLicenseNumber || '',
       });
     }
     setIsEditing(false);
@@ -190,7 +213,7 @@ export default function ProfilePage() {
   return (
     <div
       className="p-6"
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div
@@ -227,7 +250,12 @@ export default function ProfilePage() {
                 <div>
                   <h1 className="text-2xl font-semibold leading-tight text-gray-900">Profile</h1>
                   <p className="text-sm text-gray-600">
-                    Welcome, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>
+                    Welcome, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>
+                    {profile?.userType === 'doctor' && (
+                      <span className="block text-xs text-gray-500">
+                        {profile.profile?.specialty || 'No specialty set'}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -236,7 +264,7 @@ export default function ProfilePage() {
                 {!isEditing ? (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="rounded-xl bg-[var(--brand)]/80 px-4 py-2 text-sm font-medium text-gray-900 shadow hover:bg-[var(--brand)]"
+                    className="rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow hover:bg-gray-50"
                   >
                     Edit Profile
                   </button>
@@ -390,7 +418,7 @@ const SectionCard = ({
   title,
   children,
   className = '',
-}: { title: string; children: any; className?: string }) => (
+}: { title: string; children: React.ReactNode; className?: string }) => (
   <section className={`rounded-2xl border border-black/5 bg-white/80 p-6 shadow-xl backdrop-blur ${className}`}>
     <header className="mb-4">
       <h3 className="text-base font-semibold text-gray-800">{title}</h3>
@@ -400,18 +428,17 @@ const SectionCard = ({
   </section>
 );
 
-const Info = ({ label, value, badge, status }: any) => (
+const Info = ({ label, value, badge, status }: { label: string; value?: string | null; badge?: boolean | null; status?: boolean }) => (
   <div>
     <label className="block text-xs font-medium uppercase tracking-wide text-gray-500">{label}</label>
     <p className="mt-1 text-[15px] font-medium text-gray-900">{value || 'Not provided'}</p>
 
     {badge !== undefined && (
       <span
-        className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ring-1 ${
-          badge
-            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-            : 'bg-amber-50 text-amber-700 ring-amber-200'
-        }`}
+        className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ring-1 ${badge
+          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+          : 'bg-amber-50 text-amber-700 ring-amber-200'
+          }`}
       >
         <Dot ok={!!badge} />
         {badge ? 'Verified' : 'Not verified'}
@@ -420,13 +447,12 @@ const Info = ({ label, value, badge, status }: any) => (
 
     {status && (
       <span
-        className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs capitalize ring-1 ${
-          value === 'active'
-            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-            : value === 'pending'
+        className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs capitalize ring-1 ${value === 'active'
+          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+          : value === 'pending'
             ? 'bg-amber-50 text-amber-700 ring-amber-200'
             : 'bg-rose-50 text-rose-700 ring-rose-200'
-        }`}
+          }`}
       >
         <Dot ok={value === 'active'} />
         {value}
@@ -435,7 +461,7 @@ const Info = ({ label, value, badge, status }: any) => (
   </div>
 );
 
-const Input = ({ label, ...props }: any) => (
+const Input = ({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) => (
   <div>
     <label className="block text-sm font-medium text-gray-700">{label}</label>
     <input
@@ -445,7 +471,7 @@ const Input = ({ label, ...props }: any) => (
   </div>
 );
 
-const Select = ({ label, options, ...props }: any) => (
+const Select = ({ label, options, ...props }: { label: string; options: string[] } & React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <div>
     <label className="block text-sm font-medium text-gray-700">{label}</label>
     <select
@@ -462,7 +488,7 @@ const Select = ({ label, options, ...props }: any) => (
   </div>
 );
 
-const Textarea = ({ label, ...props }: any) => (
+const Textarea = ({ label, ...props }: { label: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <div>
     <label className="block text-sm font-medium text-gray-700">{label}</label>
     <textarea

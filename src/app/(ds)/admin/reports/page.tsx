@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import  api  from '@/lib/api/api';
+import api from '@/lib/api/api';
 import {
   Card, CardHeader, CardTitle, CardContent,
 } from '@/components/ui/Card';
@@ -22,7 +21,7 @@ interface Report {
   id: string;
   type: string;
   createdAt: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ApiResponse {
@@ -59,7 +58,7 @@ export default function ReportsPage() {
     page: '1',
   });
 
-  const reportEndpoints: Record<string, string> = {
+  const reportEndpoints: Record<string, string> = useMemo(() => ({
     activityLogs: '/reports/admin/activity/logs',
     appointments: '/reports/admin/reports/appointments',
     invoices: '/reports/admin/reports/invoices',
@@ -67,7 +66,7 @@ export default function ReportsPage() {
     clinical: '/reports/admin/reports/clinical',
     userActivity: '/reports/admin/reports/user-activity',
     systemPerformance: '/reports/admin/reports/system-performance',
-  };
+  }), []);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -85,15 +84,21 @@ export default function ReportsPage() {
         const response = await api.get<ApiResponse>(`${endpoint}?${query}`);
         setReports(Array.isArray(response.data.data) ? response.data.data : []);
         setPagination(response.data.pagination || null);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to fetch reports');
+      } catch (err: unknown) {
+        let msg = 'Failed to fetch reports';
+        if (typeof err === 'string') msg = err;
+        else if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response: { data?: { message?: string } } };
+          if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+        } else if (err instanceof Error) msg = err.message;
+        setError(msg);
         setReports([]);
       } finally {
         setLoading(false);
       }
     };
     if (user) fetchReports();
-  }, [user, reportType, filters]);
+  }, [user, reportType, filters, reportEndpoints]);
 
   const handleFilterChange = (name: string, value: string) => {
     setFilters(prev => ({ ...prev, [name]: value, page: '1' }));
@@ -107,7 +112,7 @@ export default function ReportsPage() {
       <header className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
         <p className="text-muted-foreground">
-          View and generate reports, {user.profile.firstName}.
+          View and generate reports, {user.profile?.firstName}.
         </p>
       </header>
 

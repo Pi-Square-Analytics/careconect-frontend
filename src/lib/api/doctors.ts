@@ -37,7 +37,7 @@ export const updateDoctorStatus = async (doctorId: string, data: UpdateDoctorSta
 };
 
 export const getDoctorStats = async (doctorId: string) => {
-    return (await api.get<any>(`/doctors/${doctorId}/stats`)).data;
+    return (await api.get<unknown>(`/doctors/${doctorId}/stats`)).data;
 };
 
 export const deleteDoctor = async (doctorId: string) => {

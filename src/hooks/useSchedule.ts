@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ScheduleAPI from '../lib/api/schedule';
-import { CreateAvailabilityRequest, UpdateAvailabilityRequest, BulkUpdateAvailabilityRequest } from '../types/schedule';
+import { CreateAvailabilityRequest, UpdateAvailabilityRequest } from '../types/schedule';
 
 export const SCHEDULE_KEYS = {
     all: ['schedule'] as const,
@@ -21,7 +21,7 @@ export function useCreateAvailability() {
     return useMutation({
         mutationFn: ({ doctorId, data }: { doctorId: string; data: CreateAvailabilityRequest }) =>
             ScheduleAPI.createAvailability(doctorId, data),
-        onSuccess: (_, variables) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: SCHEDULE_KEYS.all }); // Brute force invalidation for now
         },
     });

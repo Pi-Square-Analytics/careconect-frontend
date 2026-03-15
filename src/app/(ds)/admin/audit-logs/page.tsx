@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import  api  from '@/lib/api/api';
+import api from '@/lib/api/api';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,7 @@ interface Log {
   action: string;
   timestamp: string;
   userId?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ApiResponse {
@@ -124,12 +123,13 @@ export default function AuditLogsPage() {
           setPagination({ page: 1, limit: 10, count: demoLogs.length });
           //setNotice('Using demo logs (API returned no data).');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // API unavailable: demo mode
         setLogs(demoLogs);
         setPagination({ page: 1, limit: 10, count: demoLogs.length });
         //setNotice('these data need more processing');
-        setError(err?.response?.data?.message || null);
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(axiosErr.response?.data?.message || null);
       } finally {
         setLoading(false);
       }
@@ -201,7 +201,7 @@ export default function AuditLogsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `audit-logs-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -213,7 +213,7 @@ export default function AuditLogsPage() {
   return (
     <div
       className="p-6"
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div
@@ -233,7 +233,7 @@ export default function AuditLogsPage() {
               Audit Logs
             </h1>
             <p className="mt-1 text-gray-600">
-              View audit logs, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              View audit logs, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
           </div>
 

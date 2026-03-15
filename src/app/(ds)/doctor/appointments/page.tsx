@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import  api  from '@/lib/api/api';
+import api from '@/lib/api/api';
+import { Appointment } from '@/types/appointment';
 
 export default function DoctorAppointmentsPage() {
   const { user } = useAuthHooks();
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,8 +17,8 @@ export default function DoctorAppointmentsPage() {
       try {
         const response = await api.get('/appointments/doctor-appointments');
         setAppointments(response.data.data);
-      } catch (err) {
-        setError((err as any)?.response?.data?.message || 'Failed to fetch appointments');
+      } catch (err: unknown) {
+        setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to fetch appointments');
       } finally {
         setLoading(false);
       }
@@ -43,7 +43,7 @@ export default function DoctorAppointmentsPage() {
             <p className="text-gray-600">
               Manage your appointments,{' '}
               <span className="font-semibold text-gray-800">
-                Dr. {user.profile.firstName} {user.profile.lastName}
+                Dr. {user.profile?.firstName} {user.profile?.lastName}
               </span>.
             </p>
           </div>
@@ -64,7 +64,7 @@ export default function DoctorAppointmentsPage() {
         {/* Appointments List */}
         {appointments.length > 0 ? (
           <ul className="space-y-4">
-            {appointments.map((appointment: any) => (
+            {appointments.map((appointment) => (
               <li
                 key={appointment.appointmentId}
                 className="flex justify-between items-center bg-[#F5F9F9] p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"

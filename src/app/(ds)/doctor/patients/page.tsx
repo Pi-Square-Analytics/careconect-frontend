@@ -1,9 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import  api  from '@/lib/api/api';
+import api from '@/lib/api/api';
+
+interface Patient {
+  userId: string;
+  email: string;
+  phoneNumber?: string;
+  profile?: {
+    firstName: string;
+    lastName: string;
+  };
+}
 
 export default function PatientsPage() {
   const { user } = useAuthHooks();
@@ -17,8 +26,13 @@ export default function PatientsPage() {
       try {
         const response = await api.get('/users/patients');
         setPatients(response.data.data);
-      } catch (err) {
-        setError((err as any)?.response?.data?.message || 'Failed to fetch patients');
+      } catch (err: unknown) {
+        let msg = 'Failed to fetch patients';
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response: { data?: { message?: string } } };
+          if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+        } else if (err instanceof Error) msg = err.message;
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -37,7 +51,7 @@ export default function PatientsPage() {
       >
         <h1 className="text-3xl font-bold text-gray-800">Patients</h1>
         <p className="text-gray-700 mt-2">
-          Welcome back, <span className="font-semibold">{user.profile.firstName} {user.profile.lastName}</span>.  
+          Welcome back, <span className="font-semibold">{user.profile?.firstName} {user.profile?.lastName}</span>.
           Here’s a list of your registered patients.
         </p>
       </div>
@@ -60,13 +74,13 @@ export default function PatientsPage() {
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {patients.length > 0 ? (
-            patients.map((patient: any) => (
+            patients.map((patient: Patient) => (
               <div
                 key={patient.userId}
                 className="bg-white shadow-sm rounded-lg p-5 border border-gray-200 hover:shadow-lg transition-shadow"
               >
                 <h2 className="text-xl font-semibold text-gray-800">
-                  {patient.profile.firstName} {patient.profile.lastName}
+                  {patient.profile?.firstName} {patient.profile?.lastName}
                 </h2>
                 <p className="text-gray-600 mt-1">{patient.email}</p>
                 <p className="text-gray-500 text-sm mt-2">

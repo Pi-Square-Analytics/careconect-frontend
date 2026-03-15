@@ -53,27 +53,29 @@ export default function Home() {
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
-            <Link href="/register" passHref legacyBehavior>
-              <Button
-                className="px-8 py-4 text-lg text-white shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 transition-shadow
-                           bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700
-                           focus-visible:ring-2 focus-visible:ring-teal-500"
-                aria-label="Register for Nexus Care"
-              >
+            <Button
+              asChild
+              className="px-8 py-4 text-lg text-white shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 transition-shadow
+                         bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700
+                         focus-visible:ring-2 focus-visible:ring-teal-500"
+              aria-label="Register for Nexus Care"
+            >
+              <Link href="/register">
                 Register
-              </Button>
-            </Link>
+              </Link>
+            </Button>
 
-            <a href="#services" className="inline-block" aria-label="Explore our services">
-              <Button
-                variant="outline"
-                className="px-8 py-4 text-lg text-teal-700 dark:text-teal-300 border-teal-300/60 dark:border-teal-700/60
-                           bg-white/60 dark:bg-white/5 backdrop-blur-xl hover:bg-white/80 dark:hover:bg-white/10
-                           ring-1 ring-black/5 dark:ring-white/10 focus-visible:ring-2 focus-visible:ring-teal-500"
-              >
+            <Button
+              asChild
+              variant="outline"
+              className="inline-block px-8 py-4 text-lg text-teal-700 dark:text-teal-300 border-teal-300/60 dark:border-teal-700/60
+                         bg-white/60 dark:bg-white/5 backdrop-blur-xl hover:bg-white/80 dark:hover:bg-white/10
+                         ring-1 ring-black/5 dark:ring-white/10 focus-visible:ring-2 focus-visible:ring-teal-500"
+            >
+              <a href="#services" aria-label="Explore our services">
                 Explore Services
-              </Button>
-            </a>
+              </a>
+            </Button>
           </div>
         </div>
 

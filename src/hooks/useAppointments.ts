@@ -1,18 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as AppointmentAPI from '../lib/api/appointments';
 import {
-    BookAppointmentRequest,
     RescheduleAppointmentRequest,
     CancelAppointmentRequest,
-    UpdateAppointmentStatusRequest,
-    AdminUpdateAppointmentRequest
+    UpdateAppointmentStatusRequest
 } from '../types/appointment';
 
 export const APPOINTMENT_KEYS = {
     all: ['appointments'] as const,
     my: () => [...APPOINTMENT_KEYS.all, 'my'] as const,
     doctor: () => [...APPOINTMENT_KEYS.all, 'doctor'] as const,
-    list: (query: any) => [...APPOINTMENT_KEYS.all, 'list', query] as const,
+    list: (query: unknown) => [...APPOINTMENT_KEYS.all, 'list', query] as const,
     byId: (id: string) => [...APPOINTMENT_KEYS.all, id] as const,
     availability: (doctorId: string, date: string) => [...APPOINTMENT_KEYS.all, 'availability', doctorId, date] as const,
 };

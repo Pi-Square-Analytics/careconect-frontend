@@ -10,8 +10,7 @@ export default function RegisterPage() {
   const cssVars = useMemo(
     () =>
       ({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ['--brand' as any]: BRAND,
+        '--brand': BRAND,
       }) as React.CSSProperties,
     [BRAND]
   );

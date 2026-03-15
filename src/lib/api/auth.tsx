@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User } from '../../types/auth';
+import { safeLocalStorage } from '../storage';
 
 interface AuthContextType {
   user: User | null;
@@ -27,15 +28,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check for existing tokens and user data on mount
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    const refreshToken = localStorage.getItem('refreshToken');
-    const storedUser = localStorage.getItem('user');
+    const accessToken = safeLocalStorage.getItem('accessToken');
+    const refreshToken = safeLocalStorage.getItem('refreshToken');
+    const storedUser = safeLocalStorage.getItem('user');
 
     if (accessToken && refreshToken && storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setUserState(parsedUser);
-        setIsAuthenticated(true);
+        // Basic validation: must have userId at minimum
+        if (parsedUser && parsedUser.userId) {
+          // Ensure profile exists to avoid crashes
+          if (!parsedUser.profile) {
+            parsedUser.profile = { firstName: '', lastName: '' };
+          }
+          setUserState(parsedUser);
+          setIsAuthenticated(true);
+        } else {
+          logout();
+        }
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         // Clear corrupted data
@@ -47,37 +57,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setUser = (user: User | null) => {
     setUserState(user);
     if (user) {
-      // Store user data in localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(user));
+      // Ensure profile exists before storing
+      if (!user.profile) {
+        user.profile = { firstName: '', lastName: '' };
+      }
+      // Store user data for persistence
+      safeLocalStorage.setItem('user', JSON.stringify(user));
     } else {
-      localStorage.removeItem('user');
+      safeLocalStorage.removeItem('user');
     }
   };
 
   const setTokens = (accessToken: string, refreshToken: string) => {
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    safeLocalStorage.setItem('accessToken', accessToken);
+    safeLocalStorage.setItem('refreshToken', refreshToken);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
     setUserState(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    safeLocalStorage.removeItem('accessToken');
+    safeLocalStorage.removeItem('refreshToken');
+    safeLocalStorage.removeItem('user');
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
+    <AuthContext.Provider value={{
+      user,
       userId,
       doctorId,
       patientId,
-      setUser, 
-      setTokens, 
-      logout, 
-      isAuthenticated 
+      setUser,
+      setTokens,
+      logout,
+      isAuthenticated
     }}>
       {children}
     </AuthContext.Provider>

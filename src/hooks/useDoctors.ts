@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as DoctorAPI from '../lib/api/doctors';
-import { DoctorSearchQuery, CreateDoctorRequest, UpdateDoctorRequest, UpdateDoctorStatusRequest } from '../types/doctor';
+import { DoctorSearchQuery, UpdateDoctorRequest, UpdateDoctorStatusRequest } from '../types/doctor';
 
 export const DOCTOR_KEYS = {
     all: ['doctors'] as const,
-    publicSearch: (query: any) => [...DOCTOR_KEYS.all, 'publicSearch', query] as const,
+    publicSearch: (query: unknown) => [...DOCTOR_KEYS.all, 'publicSearch', query] as const,
     publicProfile: (id: string) => [...DOCTOR_KEYS.all, 'publicProfile', id] as const,
-    list: (query: any) => [...DOCTOR_KEYS.all, 'list', query] as const,
+    list: (query: unknown) => [...DOCTOR_KEYS.all, 'list', query] as const,
     byId: (id: string) => [...DOCTOR_KEYS.all, id] as const,
     stats: (id: string) => [...DOCTOR_KEYS.all, id, 'stats'] as const,
 };

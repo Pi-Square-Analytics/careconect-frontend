@@ -1,11 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as PatientAPI from '../lib/api/patient';
 import {
-    PatientProfile,
-    CreateMedicalHistoryRequest,
-    CreateAllergyRequest,
-    CreateMedicationRequest,
-    PatientPreferences
+    CreateMedicationRequest
 } from '../types/patient';
 
 export const PATIENT_KEYS = {

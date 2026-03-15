@@ -2,7 +2,8 @@ import api from './api';
 import {
     AdminSettings,
     AuditLog,
-    GenerateReportRequest
+    GenerateReportRequest,
+    AdminMetrics
 } from '../../types/admin';
 import { User, UpdateUserProfileRequest, UpdateUserStatusRequest } from '../../types/user';
 
@@ -27,7 +28,7 @@ export const deleteAdminUser = async (userId: string) => {
 };
 
 export const getMetricsOverview = async () => {
-    return (await api.get<any>('/admin/metrics/overview')).data;
+    return (await api.get<AdminMetrics>('/admin/metrics/overview')).data;
 };
 
 export const updateAdminSettings = async (data: AdminSettings) => {

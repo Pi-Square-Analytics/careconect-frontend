@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as AdminAPI from '../lib/api/admin';
-import { AdminSettings, GenerateReportRequest } from '../types/admin';
+
 import { UpdateUserProfileRequest, UpdateUserStatusRequest } from '../types/user';
 
 export const ADMIN_KEYS = {
     all: ['admin'] as const,
-    users: (query: any) => [...ADMIN_KEYS.all, 'users', query] as const,
+    users: (query: unknown) => [...ADMIN_KEYS.all, 'users', query] as const,
     userById: (id: string) => [...ADMIN_KEYS.all, 'user', id] as const,
     metrics: () => [...ADMIN_KEYS.all, 'metrics'] as const,
-    auditLogs: (query: any) => [...ADMIN_KEYS.all, 'auditLogs', query] as const,
+    auditLogs: (query: unknown) => [...ADMIN_KEYS.all, 'auditLogs', query] as const,
 };
 
 export function useAdminUsers(query: { page?: number; limit?: number; userType?: string; accountStatus?: string }) {
@@ -31,7 +31,7 @@ export function useUpdateAdminUser() {
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: UpdateUserProfileRequest }) =>
             AdminAPI.updateAdminUser(id, data),
-        onSuccess: (_, variables) => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.userById(variables.id) });
             queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.users({}) });
         },
@@ -43,7 +43,7 @@ export function useUpdateAdminUserStatus() {
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: UpdateUserStatusRequest }) =>
             AdminAPI.updateAdminUserStatus(id, data),
-        onSuccess: (_, variables) => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.userById(variables.id) });
             queryClient.invalidateQueries({ queryKey: ADMIN_KEYS.users({}) });
         },

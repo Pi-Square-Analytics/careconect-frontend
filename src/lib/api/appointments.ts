@@ -36,7 +36,7 @@ export const updateAppointmentStatus = async (appointmentId: string, data: Updat
 
 // Public Endpoints
 export const getAvailability = async (doctorId: string, date: string) => {
-    return (await api.get<any>(`/appointments/availability/${doctorId}/${date}`)).data;
+    return (await api.get<unknown>(`/appointments/availability/${doctorId}/${date}`)).data;
 };
 
 // Admin Endpoints

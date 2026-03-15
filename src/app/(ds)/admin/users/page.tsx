@@ -1,7 +1,4 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-//@ts-nocheck
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
@@ -76,12 +73,14 @@ export default function UsersPage() {
           console.error('Unexpected API response structure:', response.data);
           setError('Unexpected response format from server');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Fetch users error:', err);
         let errorMessage = 'Failed to fetch users';
         if (typeof err === 'string') errorMessage = err;
-        else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-        else if (err?.message) errorMessage = err.message;
+        else if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response: { data?: { message?: string } } };
+          if (axiosErr.response.data?.message) errorMessage = axiosErr.response.data.message;
+        } else if (err instanceof Error) errorMessage = err.message;
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -103,12 +102,14 @@ export default function UsersPage() {
         setUsers(response.data.users); setPagination(response.data.pagination);
       }
       setNewUser({ email: '', phoneNumber: '', userType: 'patient', firstName: '', lastName: '', password: '' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Create user error:', err);
       let errorMessage = 'Failed to create user';
       if (typeof err === 'string') errorMessage = err;
-      else if (err?.response?.data?.message) errorMessage = err.response.data.message;
-      else if (err?.message) errorMessage = err.message;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string } } };
+        if (axiosErr.response.data?.message) errorMessage = axiosErr.response.data.message;
+      } else if (err instanceof Error) errorMessage = err.message;
       setError(errorMessage);
     } finally { setLoading(false); }
   };
@@ -122,11 +123,6 @@ export default function UsersPage() {
     inactive: "bg-gray-100 text-gray-700 ring-1 ring-gray-200",
     pending: "bg-amber-100 text-amber-700 ring-1 ring-amber-200",
   };
-
-  if (!user) return <p className="mt-10 text-center text-gray-500">Please log in to view the users page.</p>;
-
-  const BRAND = '#C4E1E1';
-  const initials = (f?: string, l?: string) => ((f?.[0] ?? '') + (l?.[0] ?? '') || 'U').toUpperCase();
 
   // client-side derive list
   const filteredUsers = useMemo(() => {
@@ -143,50 +139,55 @@ export default function UsersPage() {
     if (statusFilter !== 'all') list = list.filter(u => u.accountStatus === statusFilter);
 
     switch (sortBy) {
-      case 'newest': list.sort((a,b)=>+new Date(b.createdAt)-+new Date(a.createdAt)); break;
-      case 'oldest': list.sort((a,b)=>+new Date(a.createdAt)-+new Date(b.createdAt)); break;
+      case 'newest': list.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)); break;
+      case 'oldest': list.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt)); break;
       case 'name':
-        list.sort((a,b)=>`${a.profile.firstName} ${a.profile.lastName}`.localeCompare(`${b.profile.firstName} ${b.profile.lastName}`));
+        list.sort((a, b) => `${a.profile?.firstName} ${a.profile?.lastName}`.localeCompare(`${b.profile?.firstName} ${b.profile?.lastName}`));
         break;
-      case 'type': list.sort((a,b)=>a.userType.localeCompare(b.userType)); break;
+      case 'type': list.sort((a, b) => a.userType.localeCompare(b.userType)); break;
     }
     return list;
   }, [users, query, roleFilter, statusFilter, sortBy]);
 
+  if (!user) return <p className="mt-10 text-center text-gray-500">Please log in to view the users page.</p>;
+
+  const BRAND = '#C4E1E1';
+  const initials = (f?: string, l?: string) => ((f?.[0] ?? '') + (l?.[0] ?? '') || 'U').toUpperCase();
+
   const exportCSV = () => {
     const rows = [
-      ['First Name','Last Name','Email','Phone','Type','Status','Email Verified','Phone Verified','Created','Last Login'],
-      ...filteredUsers.map(u=>[
-        u.profile.firstName, u.profile.lastName, u.email, u.phoneNumber, u.userType, u.accountStatus,
-        u.emailVerified ? 'Yes':'No', u.phoneVerified ? 'Yes':'No',
+      ['First Name', 'Last Name', 'Email', 'Phone', 'Type', 'Status', 'Email Verified', 'Phone Verified', 'Created', 'Last Login'],
+      ...filteredUsers.map(u => [
+        u.profile?.firstName, u.profile?.lastName, u.email, u.phoneNumber, u.userType, u.accountStatus,
+        u.emailVerified ? 'Yes' : 'No', u.phoneVerified ? 'Yes' : 'No',
         new Date(u.createdAt).toISOString(), u.lastLogin ? new Date(u.lastLogin).toISOString() : '',
       ])
     ];
-    const csv = rows.map(r=>r.map(x=>`"${String(x ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const csv = rows.map(r => r.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = `users-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+    a.href = url; a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="p-6" style={{ ['--brand' as any]: BRAND } as React.CSSProperties}>
+    <div className="p-6" style={{ '--brand': BRAND } as React.CSSProperties}>
       {/* brand ribbon */}
       <div className="mx-auto mb-6 h-1 max-w-6xl rounded-full"
-           style={{ background:'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }}
-           aria-hidden />
+        style={{ background: 'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }}
+        aria-hidden />
 
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Header */}
         <header className="flex items-start justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight text-gray-900">
-              <span className="grid h-9 w-9 place-items-center rounded-lg ring-1 ring-black/5" style={{ background:'var(--brand)' }}>
+              <span className="grid h-9 w-9 place-items-center rounded-lg ring-1 ring-black/5" style={{ background: 'var(--brand)' }}>
                 <Users className="h-5 w-5 text-black/70" />
               </span>
               Users
             </h1>
             <p className="mt-1 text-gray-600">
-              Manage system users, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              Manage system users, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
             {pagination?.total && (
               <p className="mt-1 text-xs text-gray-500">Total records: {pagination.total}</p>
@@ -196,7 +197,7 @@ export default function UsersPage() {
           <div className="flex items-center gap-2">
             <Button
               type="button"
-              onClick={async ()=>{ setLoading(true); try{ const r=await api.get('/admin/users'); if(r?.data?.users){ setUsers(r.data.users); setPagination(r.data.pagination);} } finally{ setLoading(false);} }}
+              onClick={async () => { setLoading(true); try { const r = await api.get('/admin/users'); if (r?.data?.users) { setUsers(r.data.users); setPagination(r.data.pagination); } } finally { setLoading(false); } }}
               disabled={loading}
               className="rounded-xl bg-[var(--brand)]/80 text-gray-900 hover:bg-[var(--brand)] disabled:opacity-60"
             >
@@ -232,15 +233,15 @@ export default function UsersPage() {
           </CardHeader>
           <CardContent className="pt-4">
             <form onSubmit={handleCreateUser} className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <Input placeholder="First Name" value={newUser.firstName} onChange={(e)=>handleInputChange("firstName", e.target.value)}
-                     required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
-              <Input placeholder="Last Name" value={newUser.lastName} onChange={(e)=>handleInputChange("lastName", e.target.value)}
-                     required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
-              <Input placeholder="Email" type="email" value={newUser.email} onChange={(e)=>handleInputChange("email", e.target.value)}
-                     required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
-              <Input placeholder="Phone Number" value={newUser.phoneNumber} onChange={(e)=>handleInputChange("phoneNumber", e.target.value)}
-                     required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
-              <Select value={newUser.userType} onValueChange={(val)=>handleInputChange("userType", val)}>
+              <Input placeholder="First Name" value={newUser.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)}
+                required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
+              <Input placeholder="Last Name" value={newUser.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)}
+                required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
+              <Input placeholder="Email" type="email" value={newUser.email} onChange={(e) => handleInputChange("email", e.target.value)}
+                required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
+              <Input placeholder="Phone Number" value={newUser.phoneNumber} onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
+              <Select value={newUser.userType} onValueChange={(val) => handleInputChange("userType", val)}>
                 <SelectTrigger className="h-11 rounded-xl border-black/10 bg-white/70 focus:ring-[var(--brand)]">
                   <SelectValue placeholder="Select User Type" />
                 </SelectTrigger>
@@ -250,8 +251,8 @@ export default function UsersPage() {
                   <SelectItem value="doctor">Doctor</SelectItem>
                 </SelectContent>
               </Select>
-              <Input placeholder="Password" type="password" value={newUser.password} onChange={(e)=>handleInputChange("password", e.target.value)}
-                     required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
+              <Input placeholder="Password" type="password" value={newUser.password} onChange={(e) => handleInputChange("password", e.target.value)}
+                required className="h-11 rounded-xl border-black/10 bg-white/70 focus-visible:ring-[var(--brand)]" />
               <div className="md:col-span-3 flex justify-end">
                 <Button type="submit" disabled={loading} className="rounded-xl bg-[var(--brand)]/80 text-gray-900 hover:bg-[var(--brand)] disabled:opacity-60">
                   {loading ? 'Creating…' : 'Create User'}
@@ -269,7 +270,7 @@ export default function UsersPage() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   value={query}
-                  onChange={(e)=>setQuery(e.target.value)}
+                  onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search by name, email, or phone…"
                   className="h-11 w-full rounded-xl border-black/10 pl-9"
                 />
@@ -278,7 +279,7 @@ export default function UsersPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-gray-400" />
-                  <Select value={roleFilter} onValueChange={(v)=>setRoleFilter(v as any)}>
+                  <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as User['userType'] | 'all')}>
                     <SelectTrigger className="h-11 w-[150px] rounded-xl border-black/10">
                       <SelectValue placeholder="Role" />
                     </SelectTrigger>
@@ -289,7 +290,7 @@ export default function UsersPage() {
                       <SelectItem value="doctor">Doctor</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={statusFilter} onValueChange={(v)=>setStatusFilter(v as any)}>
+                  <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as User['accountStatus'] | 'all')}>
                     <SelectTrigger className="h-11 w-[150px] rounded-xl border-black/10">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -302,7 +303,7 @@ export default function UsersPage() {
                   </Select>
                 </div>
 
-                <Select value={sortBy} onValueChange={(v)=>setSortBy(v as any)}>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'newest' | 'oldest' | 'name' | 'type')}>
                   <SelectTrigger className="h-11 w-[160px] rounded-xl border-black/10">
                     <SelectValue placeholder="Sort" />
                   </SelectTrigger>
@@ -315,7 +316,7 @@ export default function UsersPage() {
                 </Select>
 
                 {(roleFilter !== 'all' || statusFilter !== 'all' || query) && (
-                  <Button type="button" variant="ghost" onClick={()=>{ setQuery(''); setRoleFilter('all'); setStatusFilter('all'); }} className="h-11 rounded-xl">
+                  <Button type="button" variant="ghost" onClick={() => { setQuery(''); setRoleFilter('all'); setStatusFilter('all'); }} className="h-11 rounded-xl">
                     Clear
                   </Button>
                 )}
@@ -370,15 +371,15 @@ export default function UsersPage() {
                             <div className="flex items-center gap-3">
                               <span
                                 className="grid h-9 w-9 place-items-center rounded-full text-xs font-semibold text-gray-800 ring-1 ring-black/5"
-                                style={{ background:'radial-gradient(circle at 30% 30%, var(--brand), #ffffff 70%)' }}
+                                style={{ background: 'radial-gradient(circle at 30% 30%, var(--brand), #ffffff 70%)' }}
                               >
-                                {initials(u.profile.firstName, u.profile.lastName)}
+                                {initials(u.profile?.firstName, u.profile?.lastName)}
                               </span>
                               <div className="flex flex-col">
                                 <span className="font-medium text-gray-900">
-                                  {u.profile.firstName} {u.profile.lastName}
+                                  {u.profile?.firstName} {u.profile?.lastName}
                                 </span>
-                                <span className="text-xs text-gray-500">ID: {u.userId.slice(0,8)}…</span>
+                                <span className="text-xs text-gray-500">ID: {u.userId.slice(0, 8)}…</span>
                               </div>
                             </div>
                           </TableCell>
@@ -412,11 +413,11 @@ export default function UsersPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl ring-1 ring-black/5" style={{ background:'var(--brand)' }}>
+                <div className="grid h-12 w-12 place-items-center rounded-2xl ring-1 ring-black/5" style={{ background: 'var(--brand)' }}>
                   <Users className="h-6 w-6 text-black/70" />
                 </div>
                 <p className="text-sm text-gray-600">No users match your filters.</p>
-                <Button variant="ghost" onClick={()=>{ setQuery(''); setRoleFilter('all'); setStatusFilter('all'); }} className="mt-1 rounded-xl">
+                <Button variant="ghost" onClick={() => { setQuery(''); setRoleFilter('all'); setStatusFilter('all'); }} className="mt-1 rounded-xl">
                   Reset filters
                 </Button>
               </div>

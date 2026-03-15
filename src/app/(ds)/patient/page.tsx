@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useMemo } from "react";
@@ -14,10 +12,6 @@ export default function Page() {
   // Fetch real data
   const { data: appointments, isLoading: isLoadingAppts } = useMyAppointments();
   const { data: medications, isLoading: isLoadingMeds } = useMedications();
-
-  if (!user) return null;
-
-  const BRAND = "#C4E1E1";
 
   // Calculate stats based on real data
   const stats = useMemo(
@@ -53,10 +47,14 @@ export default function Page() {
     };
   }, [appointments]);
 
+  if (!user) return null;
+
+  const BRAND = "#C4E1E1";
+
   return (
     <div
       className="min-h-[calc(100vh-64px)] p-6 text-gray-900"
-      style={{ ["--brand" as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div
@@ -75,7 +73,7 @@ export default function Page() {
           <p className="mt-1 text-gray-600">
             Welcome,{" "}
             <span className="font-medium">
-              {user.profile.firstName} {user.profile.lastName}
+              {user.profile?.firstName} {user.profile?.lastName}
             </span>
             !
           </p>

@@ -23,7 +23,7 @@ export const updatePatientProfile = async (data: PatientProfile) => {
 };
 
 export const getMedicalSummary = async () => {
-    return (await api.get<any>('/patient/medical-summary')).data;
+    return (await api.get<unknown>('/patient/medical-summary')).data;
 };
 
 export const getMedicalHistory = async () => {

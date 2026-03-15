@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
-// @ts-nocheck
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
-import  api  from '@/lib/api/api';
+import api from '@/lib/api/api';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -80,11 +77,17 @@ export default function SettingsPage() {
         if (!data) {
           setNotice('Using demo settings (API not returning data yet).');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setSettings(fallbackSettings);
         setForm(fallbackSettings);
         setNotice('API unavailable. Showing demo settings.');
-        setError((err as any)?.response?.data?.message || null);
+        let msg = 'Failed to fetch settings';
+        if (typeof err === 'string') msg = err;
+        else if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response: { data?: { message?: string } } };
+          if (axiosErr.response.data?.message) msg = axiosErr.response.data.message;
+        } else if (err instanceof Error) msg = err.message;
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -97,7 +100,7 @@ export default function SettingsPage() {
     return JSON.stringify(settings) !== JSON.stringify(form);
   }, [settings, form]);
 
-  const onChange = (key: keyof Settings, value: any) => {
+  const onChange = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     if (!form) return;
     setForm({ ...form, [key]: value });
   };
@@ -135,7 +138,7 @@ export default function SettingsPage() {
   return (
     <div
       className="p-6"
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div
@@ -161,7 +164,7 @@ export default function SettingsPage() {
               Settings
             </h1>
             <p className="mt-1 text-gray-600">
-              Manage system settings, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              Manage system settings, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
           </div>
 

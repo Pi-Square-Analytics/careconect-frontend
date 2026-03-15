@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
+import { safeLocalStorage } from '@/lib/storage';
 
 // Dummy doctor profile
 const doctorProfile = {
@@ -13,21 +13,37 @@ const doctorProfile = {
 };
 
 // Dummy patients
-const dummyPatients = [
+const dummyPatients: Patient[] = [
   { id: 1, name: 'Alice Smith', age: 29, gender: 'Female' },
   { id: 2, name: 'James Brown', age: 45, gender: 'Male' },
   { id: 3, name: 'Maria Johnson', age: 34, gender: 'Female' },
 ];
 
+interface Patient {
+  id: number;
+  name: string;
+  age: number;
+  gender: string;
+}
+
+interface Consultation {
+  id: number;
+  patientId: number;
+  chiefComplaint: string;
+  notes: string;
+  prescription: string;
+  date: string;
+}
+
 export default function ConsultationsPage() {
-  const [patients] = useState(dummyPatients);
-  const [selectedPatient, setSelectedPatient] = useState<any>(null);
-  const [consultations, setConsultations] = useState<any[]>([]);
+  const [patients] = useState<Patient[]>(dummyPatients);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [formData, setFormData] = useState({ chiefComplaint: '', notes: '', prescription: '' });
 
   // Load consultations from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('consultations');
+    const saved = safeLocalStorage.getItem('consultations');
     if (saved) {
       setConsultations(JSON.parse(saved));
     }
@@ -35,7 +51,7 @@ export default function ConsultationsPage() {
 
   // Save consultations to localStorage
   useEffect(() => {
-    localStorage.setItem('consultations', JSON.stringify(consultations));
+    safeLocalStorage.setItem('consultations', JSON.stringify(consultations));
   }, [consultations]);
 
   const handleAddConsultation = () => {

@@ -1,5 +1,6 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { AuthResponse, LoginCredentials, RegisterCredentials } from '../../types/auth';
+import { safeLocalStorage } from '../storage';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1',
@@ -9,7 +10,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = safeLocalStorage.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -20,9 +21,9 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      safeLocalStorage.removeItem('accessToken');
+      safeLocalStorage.removeItem('refreshToken');
+      safeLocalStorage.removeItem('user');
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
@@ -58,7 +59,7 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
 };
 
 // Add explicit get function
-export const get = async <T>(url: string, config?: any): Promise<T> => {
+export const get = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
   try {
     const response = await api.get<T>(url, config);
     return response.data;
@@ -68,12 +69,12 @@ export const get = async <T>(url: string, config?: any): Promise<T> => {
   }
 };
 
-export const post = async <T>(url: string, data: any): Promise<T> => {
+export const post = async <T>(url: string, data: unknown): Promise<T> => {
   const response = await api.post(url, data);
   return response.data;
 };
 
-export const put = async <T>(url: string, data: any): Promise<T> => {
+export const put = async <T>(url: string, data: unknown): Promise<T> => {
   const response = await api.put(url, data);
   return response.data;
 };

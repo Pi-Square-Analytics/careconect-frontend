@@ -14,9 +14,9 @@ export default function Sidebar() {
   // brand color (can move to env/config if you want)
   const BRAND = '#C4E1E1';
 
-  const baseLinks =
-    user?.userType === 'patient'
-      ? [
+  const baseLinks = useMemo(() => {
+    if (user?.userType === 'patient') {
+      return [
         { name: 'Dashboard', href: '/patient' },
         { name: 'Appointments', href: '/patient/appointments' },
         { name: 'Messages', href: '/patient/messages' },
@@ -27,30 +27,34 @@ export default function Sidebar() {
         { name: 'Invoices', href: '/patient/invoices' },
         { name: 'Profile', href: '/patient/profile' },
         { name: 'Search Doctors', href: '/patient/search/doctors' },
-      ]
-      : user?.userType === 'admin'
-        ? [
-          { name: 'Dashboard', href: '/admin' },
-          { name: 'Users', href: '/admin/users' },
-          { name: 'Doctors', href: '/admin/doctors' },
-          { name: 'Reports', href: '/admin/reports' },
-          { name: 'Appointments', href: '/admin/appointments' },
-          { name: 'Audit Logs', href: '/admin/audit-logs' },
-          { name: 'Settings', href: '/admin/settings' },
-          { name: 'Profile', href: '/admin/profile' },
-        ]
-        : user?.userType === 'doctor'
-          ? [
-            { name: 'Dashboard', href: '/doctor' },
-            { name: 'Schedule', href: '/doctor/schedule' },
-            { name: 'Patients', href: '/doctor/patients' },
-            { name: 'Appointments', href: '/doctor/appointments' },
-            { name: 'Consultations', href: '/doctor/consultations' },
-            { name: 'Invoices', href: '/doctor/invoices' },
-            { name: 'Profile', href: '/doctor/profile' },
-            { name: 'Search Patients', href: '/doctor/search/patients' },
-          ]
-          : [];
+      ];
+    }
+    if (user?.userType === 'admin') {
+      return [
+        { name: 'Dashboard', href: '/admin' },
+        { name: 'Users', href: '/admin/users' },
+        { name: 'Doctors', href: '/admin/doctors' },
+        { name: 'Reports', href: '/admin/reports' },
+        { name: 'Appointments', href: '/admin/appointments' },
+        { name: 'Audit Logs', href: '/admin/audit-logs' },
+        { name: 'Settings', href: '/admin/settings' },
+        { name: 'Profile', href: '/admin/profile' },
+      ];
+    }
+    if (user?.userType === 'doctor') {
+      return [
+        { name: 'Dashboard', href: '/doctor' },
+        { name: 'Schedule', href: '/doctor/schedule' },
+        { name: 'Patients', href: '/doctor/patients' },
+        { name: 'Appointments', href: '/doctor/appointments' },
+        { name: 'Consultations', href: '/doctor/consultations' },
+        { name: 'Invoices', href: '/doctor/invoices' },
+        { name: 'Profile', href: '/doctor/profile' },
+        { name: 'Search Patients', href: '/doctor/search/patients' },
+      ];
+    }
+    return [];
+  }, [user?.userType]);
 
   // attach icons without changing hrefs or names
   const navLinks: NavLink[] = useMemo(
@@ -67,8 +71,7 @@ export default function Sidebar() {
       className="sticky top-0 h-dvh w-72 shrink-0 border-r bg-white/80 backdrop-blur-xl"
       style={
         {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ['--brand' as any]: BRAND,
+          '--brand': BRAND,
         } as React.CSSProperties
       }
     >

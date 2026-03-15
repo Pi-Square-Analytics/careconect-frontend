@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React from "react";
@@ -10,9 +9,8 @@ export default function NotFound() {
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
 
   React.useEffect(() => {
-    const handleMouseMove = (e: { clientX: any; clientY: any; }) => {
+    const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      console.log(e)
     };
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
@@ -21,7 +19,7 @@ export default function NotFound() {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8 text-white">
       {/* Mouse-following teal gradient */}
-      <div 
+      <div
         className="absolute w-72 sm:w-96 h-72 sm:h-96 rounded-full opacity-40 blur-3xl pointer-events-none transition-all duration-700 ease-out -z-40"
         style={{
           background: 'radial-gradient(circle, rgba(20, 184, 166, 0.6) 0%, rgba(6, 182, 212, 0.4) 50%, transparent 70%)',
@@ -29,15 +27,15 @@ export default function NotFound() {
           top: mousePosition.y - 144,
         }}
       />
-      
+
       {/* Teal Gradient Background */}
       <div className="absolute inset-0 -z-50 bg-gradient-to-br from-teal-950 via-teal-900 to-slate-900" />
       <div className="absolute inset-0 -z-45 bg-teal-500/10" />
       <div className="absolute inset-0 -z-44 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(20,184,166,0.3),transparent)]" />
-      
+
       {/* Animated Teal Grid */}
       <div className="absolute inset-0 -z-35 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='none' fill-rule='evenodd'%3e%3cg fill='%2314b8a6' fill-opacity='1'%3e%3ccircle cx='30' cy='30' r='1.5'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e")` }} />
-      
+
       {/* Floating Geometric Shapes - Responsive sizes */}
       <div className="absolute inset-0 -z-30 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-[5%] sm:left-[10%] w-24 sm:w-32 h-24 sm:h-32 border border-teal-300/20 rounded-full animate-spin" style={{ animationDuration: '20s' }} />
@@ -73,12 +71,12 @@ export default function NotFound() {
         <div className="relative group">
           {/* Teal Glow Effect */}
           <div className="absolute -inset-0.5 bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-500 rounded-2xl sm:rounded-3xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-          
+
           {/* Main Glass Card */}
           <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-teal-950/30 border border-teal-300/30 backdrop-blur-2xl shadow-2xl">
             {/* Inner Teal Glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-teal-400/10 via-transparent to-transparent pointer-events-none" />
-            
+
             {/* Shimmer Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-teal-300/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
@@ -100,7 +98,7 @@ export default function NotFound() {
                 {/* Holographic background layers */}
                 <div className="absolute inset-0 bg-gradient-to-r from-teal-400 via-teal-300 to-cyan-400 bg-clip-text blur-3xl opacity-40 scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-r from-teal-300 via-teal-200 to-cyan-300 bg-clip-text blur-xl opacity-60" />
-                
+
                 {/* Main 404 text with glitch effect - Responsive */}
                 <h1 className="relative text-[80px] sm:text-[140px] lg:text-[180px] xl:text-[200px] font-black leading-none tracking-tight bg-gradient-to-r from-teal-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent drop-shadow-2xl group-hover/number:animate-pulse">
                   4
@@ -128,7 +126,7 @@ export default function NotFound() {
                   <div className="h-px bg-gradient-to-r from-transparent via-teal-400 to-transparent flex-1" />
                 </div>
                 <p className="text-base sm:text-xl text-white/80 max-w-sm sm:max-w-lg mx-auto leading-relaxed px-4">
-                  This page has been swept away by the <span className="text-teal-300 font-semibold">digital tide</span>. 
+                  This page has been swept away by the <span className="text-teal-300 font-semibold">digital tide</span>.
                   Let&apos;s navigate you back to <span className="text-cyan-300 font-semibold">safe waters</span>!
                 </p>
               </div>
@@ -146,10 +144,10 @@ export default function NotFound() {
                     </div>
                   </Button>
                 </Link>
-                
+
                 <Link href="/contact" className="w-full sm:w-auto group/support">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full sm:w-auto border-2 border-teal-300/40 text-white hover:bg-teal-500/20 hover:border-teal-300 backdrop-blur-xl px-6 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 sm:hover:scale-110 group-hover/support:border-teal-300 relative overflow-hidden text-sm sm:text-lg"
                   >
                     {/* Button shimmer */}

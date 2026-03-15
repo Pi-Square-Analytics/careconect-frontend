@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
@@ -27,25 +26,19 @@ export function useAuthHooks() {
 
       if (endpoint === 'login') {
         const { accessToken, refreshToken, user } = response as LoginResponseData;
-        
+
         // Set user data first (which includes doctorId/patientId)
         setUser(user);
         // Then set tokens
         setTokens(accessToken, refreshToken);
 
-        // Enhanced logging for debugging
-        console.log('Login successful:', {
-          userId: user.userId,
-          userType: user.userType,
-          doctorId: user.doctorId,
-          patientId: user.patientId
-        });
+        // setUser and setTokens already called above
 
         // Role-based redirection for login
         switch (user.userType) {
           case 'patient':
             if (user.patientId) {
-              console.log('Redirecting patient with patientId:', user.patientId);
+              // Redirecting patient
             }
             router.push('/patient');
             break;
@@ -54,7 +47,7 @@ export function useAuthHooks() {
             break;
           case 'doctor':
             if (user.doctorId) {
-              console.log('Redirecting doctor with doctorId:', user.doctorId);
+              // Redirecting doctor
             }
             router.push('/doctor');
             break;
@@ -65,26 +58,24 @@ export function useAuthHooks() {
         // For registration, we might not get tokens immediately
         const userData = response as RegisterResponseData;
         setUser(userData);
-        
-        console.log('Registration successful:', {
-          userId: userData.userId,
-          userType: userData.userType,
-          doctorId: userData.doctorId,
-          patientId: userData.patientId
-        });
-        
+
+        // Registration successful
+
         // Redirect to login page after successful registration
         router.push('/login');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Improved error handling
       let errorMessage = 'An error occurred during authentication';
 
-      if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err?.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err?.message) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string; error?: string } } };
+        if (axiosErr.response.data?.message) {
+          errorMessage = axiosErr.response.data.message;
+        } else if (axiosErr.response.data?.error) {
+          errorMessage = axiosErr.response.data.error;
+        }
+      } else if (err instanceof Error) {
         errorMessage = err.message;
       } else if (typeof err === 'string') {
         errorMessage = err;
@@ -107,15 +98,15 @@ export function useAuthHooks() {
   const getCurrentDoctorId = () => doctorId;
   const getCurrentPatientId = () => patientId;
 
-  return { 
-    user, 
+  return {
+    user,
     userId,
     doctorId,
     patientId,
-    handleAuth, 
-    handleLogout, 
-    loading, 
-    error, 
+    handleAuth,
+    handleLogout,
+    loading,
+    error,
     isAuthenticated,
     getCurrentUserId,
     getCurrentDoctorId,

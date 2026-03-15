@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
 import { get } from '@/lib/api/api';
+import { safeLocalStorage } from '@/lib/storage';
 
 interface Appointment {
   appointmentId: string;
@@ -84,7 +84,7 @@ export default function AdminAppointmentsPage() {
       setNotice(null);
 
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = safeLocalStorage.getItem('accessToken');
         if (!token) throw new Error('No access token found. Please log in again.');
 
         const data = await get<AppointmentsResponse>('/appointments/');
@@ -95,11 +95,12 @@ export default function AdminAppointmentsPage() {
           setAppointments(demoAppointments);
           setNotice('Using demo appointments (API returned no data).');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching appointments:', err);
         setAppointments(demoAppointments);
         setNotice('API unavailable. Showing demo appointments.');
-        setApiError(err?.message || null);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        setApiError(errorMsg);
       } finally {
         setLoading(false);
       }
@@ -174,7 +175,7 @@ export default function AdminAppointmentsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `appointments-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `appointments-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -210,7 +211,7 @@ export default function AdminAppointmentsPage() {
   return (
     <div
       className="p-6"
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div className="mx-auto mb-6 h-1 max-w-6xl rounded-full" style={{ background: 'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }} aria-hidden />
@@ -221,7 +222,7 @@ export default function AdminAppointmentsPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">All Appointments</h1>
             <p className="mt-1 text-gray-600">
-              Manage all appointments, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              Manage all appointments, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
             <p className="mt-2 text-xs text-gray-500">Total appointments: {appointments.length}</p>
           </div>
@@ -268,7 +269,7 @@ export default function AdminAppointmentsPage() {
               <span className="text-sm font-medium text-gray-700">Status</span>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'scheduled' | 'completed' | 'cancelled' | 'pending')}
                 className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 outline-none ring-0 transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
               >
                 <option value="all">All</option>
@@ -283,7 +284,7 @@ export default function AdminAppointmentsPage() {
               <span className="text-sm font-medium text-gray-700">Sort</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'soonest' | 'latest' | 'patient' | 'doctor')}
                 className="h-11 w-full rounded-xl border border-gray-300 bg-white px-3 outline-none ring-0 transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]"
               >
                 <option value="soonest">Soonest</option>

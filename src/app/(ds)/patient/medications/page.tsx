@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
+import { safeLocalStorage } from '@/lib/storage';
 
 type Frequency =
   | 'Once daily'
@@ -97,12 +98,12 @@ export default function MedicationsPage() {
   useEffect(() => {
     if (!user) return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = safeLocalStorage.getItem(STORAGE_KEY);
       if (raw) {
         setMedications(JSON.parse(raw));
       } else {
         setMedications(seedMeds);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seedMeds));
+        safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(seedMeds));
       }
     } catch {
       setError('Failed to load medications from local storage.');
@@ -115,7 +116,7 @@ export default function MedicationsPage() {
   useEffect(() => {
     if (!user) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(medications));
+      safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(medications));
     } catch {
       // ignore write errors
     }
@@ -168,13 +169,13 @@ export default function MedicationsPage() {
       prev.map((m) =>
         m.medicationId === id
           ? {
-              ...m,
-              medicationName: editDraft.medicationName.trim(),
-              dosage: editDraft.dosage.trim(),
-              frequency: editDraft.frequency,
-              startDate: editDraft.startDate ? new Date(editDraft.startDate).toISOString() : undefined,
-              notes: editDraft.notes?.trim() || undefined,
-            }
+            ...m,
+            medicationName: editDraft.medicationName.trim(),
+            dosage: editDraft.dosage.trim(),
+            frequency: editDraft.frequency,
+            startDate: editDraft.startDate ? new Date(editDraft.startDate).toISOString() : undefined,
+            notes: editDraft.notes?.trim() || undefined,
+          }
           : m
       )
     );
@@ -206,7 +207,7 @@ export default function MedicationsPage() {
         <p className="mt-1 text-gray-600">
           Manage your medications,{' '}
           <span className="font-medium">
-            {user.profile.firstName} {user.profile.lastName}
+            {user.profile?.firstName} {user.profile?.lastName}
           </span>
           .
         </p>

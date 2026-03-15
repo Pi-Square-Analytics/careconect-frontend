@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-//@ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
 import api from '@/lib/api/api';
@@ -101,13 +99,18 @@ export default function PatientAppointmentsPage() {
       const res = await api.get<ApiResponse<Appointment[]>>(`/appointments/my-appointments`);
       setAppointments(Array.isArray(res.data.data) ? res.data.data : []);
       setAppointmentsPagination(res.data.pagination || null);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to fetch appointments';
+    } catch (err: unknown) {
+      let msg = 'Failed to fetch appointments';
+      if (typeof err === 'string') msg = err;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string; error?: string } } };
+        msg = axiosErr.response.data?.message || axiosErr.response.data?.error || msg;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg); setAppointments([]);
     } finally {
       setLoadingState(p => ({ ...p, fetchingAppointments: false }));
     }
-  }, [user, appointmentsFilters.page]);
+  }, [user]);
 
   const fetchDoctors = useCallback(async () => {
     setLoadingState(p => ({ ...p, fetchingDoctors: true })); setError(null);
@@ -115,13 +118,18 @@ export default function PatientAppointmentsPage() {
       const res = await api.get<ApiResponse<Doctor[]>>(`/doctors/public/search`);
       setDoctors(Array.isArray(res.data.data) ? res.data.data : []);
       setDoctorsPagination(res.data.pagination || null);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to fetch doctors';
+    } catch (err: unknown) {
+      let msg = 'Failed to fetch doctors';
+      if (typeof err === 'string') msg = err;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string; error?: string } } };
+        msg = axiosErr.response.data?.message || axiosErr.response.data?.error || msg;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg); setDoctors([]);
     } finally {
       setLoadingState(p => ({ ...p, fetchingDoctors: false }));
     }
-  }, [doctorFilters]);
+  }, []);
 
   const fetchAvailability = useCallback(async (doctorId: string, date: string) => {
     if (!doctorId || !date) { setAvailabilitySlots([]); return; }
@@ -169,8 +177,13 @@ export default function PatientAppointmentsPage() {
       await fetchAppointments();
       setNewAppointment({ doctorId: '', appointmentType: 'consultation', scheduledDate: '', scheduledTime: '', reason: '', notes: '' });
       setAvailabilitySlots([]);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to book appointment';
+    } catch (err: unknown) {
+      let msg = 'Failed to book appointment';
+      if (typeof err === 'string') msg = err;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string; error?: string } } };
+        msg = axiosErr.response.data?.message || axiosErr.response.data?.error || msg;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally { setLoadingState(p => ({ ...p, booking: false })); }
   };
@@ -188,8 +201,13 @@ export default function PatientAppointmentsPage() {
       await fetchAppointments();
       setSelectedAppointmentId(null);
       setRescheduleAppointment({ scheduledDate: '', scheduledTime: '' });
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to reschedule appointment';
+    } catch (err: unknown) {
+      let msg = 'Failed to reschedule appointment';
+      if (typeof err === 'string') msg = err;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string; error?: string } } };
+        msg = axiosErr.response.data?.message || axiosErr.response.data?.error || msg;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally { setLoadingState(p => ({ ...p, rescheduling: false })); }
   };
@@ -205,16 +223,25 @@ export default function PatientAppointmentsPage() {
       await fetchAppointments();
       setSelectedAppointmentId(null);
       setCancelAppointment({ cancellationReason: '' });
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to cancel appointment';
+    } catch (err: unknown) {
+      let msg = 'Failed to cancel appointment';
+      if (typeof err === 'string') msg = err;
+      else if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response: { data?: { message?: string; error?: string } } };
+        msg = axiosErr.response.data?.message || axiosErr.response.data?.error || msg;
+      } else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally { setLoadingState(p => ({ ...p, canceling: false })); }
   };
 
   // ---------- UI helpers ----------
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-    setState: React.Dispatch<React.SetStateAction<any>>, state: any) => {
-    const { name, value } = e.target; setState({ ...state, [name]: value });
+  const handleInputChange = <T,>(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    setState: React.Dispatch<React.SetStateAction<T>>,
+    state: T
+  ) => {
+    const { name, value } = e.target;
+    setState({ ...state, [name]: value });
   };
   const handleDoctorFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setDoctorFilters({ ...doctorFilters, [e.target.name]: e.target.value, page: 1 });
@@ -232,18 +259,18 @@ export default function PatientAppointmentsPage() {
   return (
     <div
       className="p-6"
-      style={{ ['--brand' as any]: BRAND } as React.CSSProperties}
+      style={{ '--brand': BRAND } as React.CSSProperties}
     >
       {/* brand ribbon */}
       <div className="mx-auto mb-6 h-1 max-w-7xl rounded-full"
-        style={{ background:'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }} />
+        style={{ background: 'linear-gradient(90deg, transparent 0%, var(--brand) 20%, var(--brand) 80%, transparent 100%)' }} />
 
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <header>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">My Appointments</h1>
           <p className="mt-1 text-gray-600">
-            Manage your appointments, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+            Manage your appointments, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
           </p>
         </header>
 
@@ -293,7 +320,7 @@ export default function PatientAppointmentsPage() {
                     <option value="">Select a doctor</option>
                     {doctors.map(d => (
                       <option key={d.doctorId} value={d.doctorId}>
-                        {d.user.profile.firstName} {d.user.profile.lastName} — {d.specialty} (${d.consultationFee})
+                        {d.user.profile?.firstName} {d.user.profile?.lastName} — {d.specialty} (${d.consultationFee})
                       </option>
                     ))}
                   </select>
@@ -490,10 +517,10 @@ export default function PatientAppointmentsPage() {
                   <div key={d.doctorId} className="rounded-xl border border-black/5 bg-white/80 p-4 shadow-sm">
                     <div className="flex items-center gap-3">
                       <span className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700 ring-1 ring-black/5">
-                        {initials(d.user.profile.firstName, d.user.profile.lastName)}
+                        {initials(d.user.profile?.firstName, d.user.profile?.lastName)}
                       </span>
                       <div>
-                        <p className="font-medium text-gray-900">{d.user.profile.firstName} {d.user.profile.lastName}</p>
+                        <p className="font-medium text-gray-900">{d.user.profile?.firstName} {d.user.profile?.lastName}</p>
                         <p className="text-xs text-gray-500">{d.doctorId}</p>
                       </div>
                     </div>

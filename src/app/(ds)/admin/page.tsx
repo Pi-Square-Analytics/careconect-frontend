@@ -120,7 +120,7 @@ export default function AdminDashboard() {
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Admin Dashboard</h1>
             <p className="mt-1 text-gray-600">
-              Welcome back, <span className="font-medium">{user.profile.firstName} {user.profile.lastName}</span>.
+              Welcome back, <span className="font-medium">{user.profile?.firstName} {user.profile?.lastName}</span>.
             </p>
             {metrics && (
               <p className="mt-1 text-xs text-gray-500">Last generated: {new Date(metrics.generatedAt).toLocaleString()}</p>

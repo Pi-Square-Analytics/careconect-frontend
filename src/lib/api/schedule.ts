@@ -4,7 +4,6 @@ import {
     DoctorAvailability,
     CreateAvailabilityRequest,
     UpdateAvailabilityRequest,
-    UpdateAvailabilityStatusRequest,
     BulkUpdateAvailabilityRequest
 } from '../../types/schedule';
 

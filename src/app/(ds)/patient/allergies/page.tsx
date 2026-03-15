@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthHooks } from '@/hooks/useAuth';
+import { safeLocalStorage } from '@/lib/storage';
 
 type Severity = 'Mild' | 'Moderate' | 'Severe';
 
@@ -82,15 +83,14 @@ export default function AllergiesPage() {
 
   // Load from localStorage (or seed) on mount
   useEffect(() => {
-    if (!user) return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = safeLocalStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed: Allergy[] = JSON.parse(raw);
         setAllergies(parsed);
       } else {
         setAllergies(seedAllergies);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seedAllergies));
+        safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(seedAllergies));
       }
     } catch {
       setError('Failed to load allergies from local storage.');
@@ -103,7 +103,7 @@ export default function AllergiesPage() {
   useEffect(() => {
     if (!user) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allergies));
+      safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(allergies));
     } catch {
       // ignore write errors
     }
@@ -152,11 +152,11 @@ export default function AllergiesPage() {
       prev.map((a) =>
         a.allergyId === id
           ? {
-              ...a,
-              allergenName: editDraft.allergenName.trim(),
-              reactionSeverity: editDraft.reactionSeverity,
-              notes: editDraft.notes?.trim(),
-            }
+            ...a,
+            allergenName: editDraft.allergenName.trim(),
+            reactionSeverity: editDraft.reactionSeverity,
+            notes: editDraft.notes?.trim(),
+          }
           : a
       )
     );
@@ -188,7 +188,7 @@ export default function AllergiesPage() {
         <p className="mt-1 text-gray-600">
           Manage your allergies,{' '}
           <span className="font-medium">
-            {user.profile.firstName} {user.profile.lastName}
+            {user.profile?.firstName} {user.profile?.lastName}
           </span>
           .
         </p>
@@ -306,8 +306,8 @@ export default function AllergiesPage() {
                               a.reactionSeverity === 'Severe'
                                 ? 'bg-red-100 text-red-800 ring-red-200'
                                 : a.reactionSeverity === 'Moderate'
-                                ? 'bg-yellow-100 text-yellow-800 ring-yellow-200'
-                                : 'bg-green-100 text-green-800 ring-green-200',
+                                  ? 'bg-yellow-100 text-yellow-800 ring-yellow-200'
+                                  : 'bg-green-100 text-green-800 ring-green-200',
                             ].join(' ')}
                           >
                             {a.reactionSeverity}
